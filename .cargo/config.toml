@@ -1,0 +1,58 @@
+[build]
+# Use more parallel jobs for faster builds
+jobs = 4
+
+# Target for default build (empty = host target)
+target = ""
+
+[alias]
+# Convenient aliases for common build commands
+b = "build"
+r = "run"
+t = "test"
+c = "check"
+doc-open = "doc --open"
+
+# Cross-compilation aliases
+# Note: These require the `cross` tool or proper toolchain installation
+x86-apple = "build --release --target x86_64-apple-darwin"
+arm-apple = "build --release --target aarch64-apple-darwin"
+x86-linux = "build --release --target x86_64-unknown-linux-gnu"
+x86-linux-musl = "build --release --target x86_64-unknown-linux-musl"
+arm-linux = "build --release --target aarch64-unknown-linux-gnu"
+armv7-linux = "build --release --target armv7-unknown-linux-gnueabihf"
+x86-windows = "build --release --target x86_64-pc-windows-msvc"
+
+[target.x86_64-apple-darwin]
+# Build for Intel Macs
+# On Apple Silicon, this requires Rosetta 2
+
+[target.aarch64-apple-darwin]
+# Build for Apple Silicon (M1/M2/M3)
+# This is the default target on modern Macs
+
+[target.x86_64-unknown-linux-gnu]
+# Build for standard Linux (glibc)
+# Requires: cross tool or x86_64-unknown-linux-gnu toolchain installed
+# On macOS: rustup target add x86_64-unknown-linux-gnu
+# Then use: cross build --release --target x86_64-unknown-linux-gnu
+
+[target.x86_64-unknown-linux-musl]
+# Build for Linux with musl libc (static binary)
+# Produces standalone binaries that work on most Linux distros
+# Requires: cross tool
+# On macOS: cross build --release --target x86_64-unknown-linux-musl
+
+[target.aarch64-unknown-linux-gnu]
+# Build for ARM64 Linux (e.g., AWS Graviton, Raspberry Pi 4)
+# Requires: cross tool
+# On macOS: cross build --release --target aarch64-unknown-linux-gnu
+
+[target.armv7-unknown-linux-gnueabihf]
+# Build for ARMv7 Linux (e.g., Raspberry Pi 2/3)
+# Requires: cross tool
+# On macOS: cross build --release --target armv7-unknown-linux-gnueabihf
+
+[target.x86_64-pc-windows-msvc]
+# Build for Windows (MSVC runtime)
+# On macOS: cargo install cross && cross build --release --target x86_64-pc-windows-msvc

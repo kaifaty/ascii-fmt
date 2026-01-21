@@ -49,6 +49,67 @@ cd ascii-fmt
 cargo install --path .
 ```
 
+### Скачать готовые бинарники
+
+Готовые бинарники для разных платформ доступны в [GitHub Releases](https://github.com/yourusername/ascii-fmt/releases).
+
+Поддерживаемые платформы:
+- **macOS**: x86_64 (Intel), aarch64 (Apple Silicon)
+- **Linux**: x86_64 (glibc), x86_64 (musl, static binary), aarch64 (ARM64), armv7 (Raspberry Pi)
+- **Windows**: x86_64
+
+## Кросс-компиляция
+
+### Локальная сборка с Makefile
+
+Для удобства добавлен Makefile с целями для кросс-компиляции:
+
+```bash
+# Показать все доступные команды
+make help
+
+# Сборка для текущей платформы
+make build
+make release
+
+# Сборка для других платформ (требует cross)
+make install-cross
+make cross-all              # Сборка всех поддерживаемых платформ
+make package-all            # Упаковка всех бинарников с checksums
+
+# Специфичные цели
+make cross-x86_64-apple-darwin       # Intel macOS
+make cross-aarch64-apple-darwin       # Apple Silicon
+make cross-x86_64-unknown-linux-gnu   # Linux x86_64
+make cross-aarch64-unknown-linux-gnu # Linux ARM64
+make cross-x86_64-pc-windows-msvc    # Windows x86_64
+```
+
+### Использование cross tool
+
+Для кросс-компиляции Linux/Windows с macOS используется инструмент `cross`:
+
+```bash
+# Установка cross
+cargo install cross --git https://github.com/cross-rs/cross
+
+# Примеры использования
+cross build --release --target x86_64-unknown-linux-gnu
+cross build --release --target x86_64-pc-windows-msvc
+```
+
+### Cargo aliases
+
+В `.cargo/config.toml` добавлены удобные алиасы:
+
+```bash
+cargo x86-apple      # x86_64-apple-darwin
+cargo arm-apple      # aarch64-apple-darwin
+cargo x86-linux      # x86_64-unknown-linux-gnu
+cargo arm-linux      # aarch64-unknown-linux-gnu
+cargo x86-windows    # x86_64-pc-windows-msvc
+```
+
 ## Использование
 
 ### Базовое использование
@@ -276,6 +337,45 @@ cargo doc --document-private-items --open
 - [ ] Цветовая подсветка
 - [ ] Экспорт в другие форматы (SVG, PNG)
 - [ ] Расширенные пресеты стилей
+
+## CI/CD
+
+Проект использует GitHub Actions для автоматической сборки бинарников под все поддерживаемые платформы.
+
+### Release Workflow
+
+При пуше тега (например, `v1.0.0`) автоматически:
+
+1. Строятся бинарники для всех платформ
+2. Создаются архивы (tar.gz для Unix, zip для Windows)
+3. Генерируются SHA256 checksums
+4. Создается GitHub Release с артефактами
+
+### Поддерживаемые в CI платформы
+
+```yaml
+macOS:
+  - x86_64-apple-darwin (Intel)
+  - aarch64-apple-darwin (Apple Silicon)
+
+Linux:
+  - x86_64-unknown-linux-gnu (glibc)
+  - x86_64-unknown-linux-musl (static binary)
+  - aarch64-unknown-linux-gnu (ARM64)
+  - armv7-unknown-linux-gnueabihf (ARMv7)
+
+Windows:
+  - x86_64-pc-windows-msvc
+```
+
+### Локальный тестинг CI
+
+```bash
+# Запуск всех тестов (как в CI)
+make test
+make clippy
+make fmt-check
+```
 
 ## Contributing
 
