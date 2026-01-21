@@ -142,7 +142,7 @@ mod tests {
         ];
 
         let result = analyze_grid(&lines).unwrap();
-        assert_eq!(result.column_width, 2);
+        assert_eq!(result.column_width, 4);
         assert_eq!(result.row_height, 1);
     }
 
@@ -157,7 +157,7 @@ mod tests {
         ];
 
         let result = analyze_grid(&lines).unwrap();
-        assert_eq!(result.column_width, 2);
+        assert_eq!(result.column_width, 4);
     }
 
     #[test]

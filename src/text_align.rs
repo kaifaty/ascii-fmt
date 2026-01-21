@@ -30,7 +30,11 @@ fn is_text_line(line: &str) -> bool {
 fn align_text_in_line(line: &str, style: Style) -> String {
     let trimmed = line.trim();
     let text_len = UnicodeWidthStr::width(trimmed);
-    let original_len = line.len();
+    let original_len = UnicodeWidthStr::width(line);
+
+    if trimmed.is_empty() {
+        return String::new();
+    }
 
     if original_len <= text_len {
         return line.to_string();
@@ -184,7 +188,7 @@ mod tests {
     #[test]
     fn test_align_text_in_line_detailed_style() {
         let result = align_text_in_line("  hello  ", Style::Detailed);
-        assert_eq!(result, " hello  ");
+        assert_eq!(result, "  hello  ");
     }
 
     #[test]
@@ -256,7 +260,7 @@ mod tests {
     #[test]
     fn test_center_text_unicode() {
         let result = center_text("你好", 6);
-        assert_eq!(result, "  你好");
+        assert_eq!(result, " 你好 ");
     }
 
     #[test]

@@ -29,9 +29,9 @@ fn fix_char(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> Result<cha
 }
 
 fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = get_neighbor_char(x - 1, y, diagram);
+    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = get_neighbor_char(x, y - 1, diagram);
+    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));
@@ -46,19 +46,18 @@ fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
         (true, true, true, false) => Ok('┴'),
         (true, true, false, true) => Ok('┬'),
         (true, false, true, true) => Ok('┤'),
-        (false, true, true, true) => Ok('├'),
         (true, false, true, false) => Ok('┘'),
-        (false, true, true, false) => Ok('└'),
-        (true, false, false, true) => Ok('┐'),
-        (false, true, false, true) => Ok('┌'),
+        (false, true, true, true) => Ok('└'),
+        (true, false, true, false) => Ok('┐'),
+        (false, true, true, false) => Ok('┌'),
         _ => Ok('+'),
     }
 }
 
 fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = get_neighbor_char(x - 1, y, diagram);
+    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = get_neighbor_char(x, y - 1, diagram);
+    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));
@@ -83,9 +82,9 @@ fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
 }
 
 fn fix_vertical(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = get_neighbor_char(x - 1, y, diagram);
+    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = get_neighbor_char(x, y - 1, diagram);
+    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));
@@ -383,7 +382,8 @@ mod tests {
 
         assert_eq!(diagram.lines.len(), original_lines.len());
         for (i, line) in diagram.lines.iter().enumerate() {
-            assert_eq!(line.len(), original_lines[i].len());
+            assert_eq!(unicode_width::UnicodeWidthStr::width(line.as_str()),
+                      unicode_width::UnicodeWidthStr::width(original_lines[i].as_str()));
         }
     }
 

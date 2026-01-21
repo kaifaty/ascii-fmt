@@ -5,7 +5,7 @@ pub fn is_box_drawing_char(ch: char) -> bool {
 }
 
 pub fn is_horizontal(ch: char) -> bool {
-    matches!(ch, '─' | '═' | '┄' | '┅')
+    matches!(ch, '─' | '═' | '┄' | '┅' | '-' | '_')
 }
 
 pub fn is_vertical(ch: char) -> bool {
@@ -199,7 +199,8 @@ mod tests {
     #[test]
     fn test_most_common_chars() {
         let items: Vec<char> = vec!['a', 'b', 'b', 'c', 'c', 'c', 'b'];
-        assert_eq!(most_common(&items), Some('b'));
+        // 'b' and 'c' both appear 3 times - either is valid
+        assert!(most_common(&items) == Some('b') || most_common(&items) == Some('c'));
     }
 
     #[test]
