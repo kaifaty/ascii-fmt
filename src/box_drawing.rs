@@ -38,9 +38,9 @@ fn fix_char(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> Result<cha
 }
 
 fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
+    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));
@@ -52,8 +52,8 @@ fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
         (true, true, true, true) => Ok('┼'),
         (true, true, false, false) => Ok('─'),
         (false, false, true, true) => Ok('│'),
-        (true, true, true, false) => Ok('┴'),
-        (true, true, false, true) => Ok('┬'),
+        (true, true, true, false) => Ok('┬'),
+        (true, true, false, true) => Ok('┴'),
         (true, false, true, true) => Ok('┤'),
         (false, true, true, true) => Ok('├'),
         (true, false, true, false) => Ok('┘'),
@@ -65,9 +65,9 @@ fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
 }
 
 fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
+    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));
@@ -92,9 +92,9 @@ fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
 }
 
 fn fix_vertical(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|x| get_neighbor_char(x, y, diagram));
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|y| get_neighbor_char(x, y, diagram));
+    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     let has_left = left.map_or(false, |c| is_horizontal(c));

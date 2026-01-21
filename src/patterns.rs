@@ -26,7 +26,13 @@ pub fn detect_type(lines: &[String]) -> DiagramType {
                         lines.iter().any(|l| l.contains("┘"));
     let has_tables = lines.iter().any(|l| l.contains("┬") || l.contains("┼"));
 
+    // Table with corners
     if has_tables && has_all_corners {
+        return DiagramType::Table;
+    }
+
+    // Simple corner box (≤3 lines) is Table
+    if has_all_corners && !has_tables && !has_arrows && lines.len() <= 3 {
         return DiagramType::Table;
     }
 
@@ -36,18 +42,22 @@ pub fn detect_type(lines: &[String]) -> DiagramType {
         }
     }
 
+    // Flowchart with arrows and corners
     if has_arrows && has_all_corners {
         return DiagramType::Flowchart;
     }
 
-    if has_arrows && !has_tree_symbols && !has_tree_indent {
+    // Flowchart with arrows only (no corners/tree/tables)
+    if has_arrows && !has_all_corners && !has_tree_symbols && !has_tree_indent {
         return DiagramType::Flowchart;
     }
 
+    // Architecture
     if has_all_corners && !has_tables {
         return DiagramType::Architecture;
     }
 
+    // Sequence
     if has_vertical_lines && !has_tree_symbols {
         return DiagramType::Sequence;
     }
