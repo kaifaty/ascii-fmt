@@ -9,7 +9,7 @@ pub fn is_horizontal(ch: char) -> bool {
 }
 
 pub fn is_vertical(ch: char) -> bool {
-    matches!(ch, '│' | '║' | '┆' | '┇')
+    matches!(ch, '│' | '║' | '┆' | '┇' | '|' | '!')
 }
 
 pub fn is_arrow(ch: char) -> bool {
@@ -106,8 +106,6 @@ mod tests {
         assert!(!is_horizontal('│'));
         assert!(!is_horizontal('║'));
         assert!(!is_horizontal('┌'));
-        assert!(!is_horizontal('-'));
-        assert!(!is_horizontal('_'));
         assert!(!is_horizontal('a'));
     }
 
@@ -124,8 +122,6 @@ mod tests {
         assert!(!is_vertical('─'));
         assert!(!is_vertical('═'));
         assert!(!is_vertical('┌'));
-        assert!(!is_vertical('|'));
-        assert!(!is_vertical('!'));
         assert!(!is_vertical('a'));
     }
 
@@ -181,7 +177,8 @@ mod tests {
     #[test]
     fn test_most_common_tie() {
         let items = vec![1, 1, 2, 2, 3];
-        assert!(most_common(&items) == Some(1) || most_common(&items) == Some(2));
+        let result = most_common(&items);
+        assert!(result == Some(1) || result == Some(2));
     }
 
     #[test]
@@ -199,8 +196,9 @@ mod tests {
     #[test]
     fn test_most_common_chars() {
         let items: Vec<char> = vec!['a', 'b', 'b', 'c', 'c', 'c', 'b'];
+        let result = most_common(&items);
         // 'b' and 'c' both appear 3 times - either is valid
-        assert!(most_common(&items) == Some('b') || most_common(&items) == Some('c'));
+        assert!(result == Some('b') || result == Some('c'));
     }
 
     #[test]

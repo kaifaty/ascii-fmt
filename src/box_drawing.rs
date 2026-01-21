@@ -3,17 +3,26 @@ use crate::parser::ParsedDiagram;
 use crate::utils::{get_char_at, is_diagonal, is_horizontal, is_vertical};
 
 pub fn fix_box_drawing_symbols(diagram: &mut ParsedDiagram) -> Result<()> {
+    let original_lines = diagram.lines.clone();
+    let temp_diagram = ParsedDiagram {
+        lines: original_lines.clone(),
+        diagram_type: diagram.diagram_type,
+    };
+    let mut new_lines = Vec::with_capacity(diagram.lines.len());
+
     for y in 0..diagram.lines.len() {
-        let line = diagram.lines[y].clone();
+        let line = &original_lines[y];
         let mut new_line = String::with_capacity(line.len());
 
         for (x, ch) in line.chars().enumerate() {
-            let fixed = fix_char(ch, x, y, diagram)?;
+            let fixed = fix_char(ch, x, y, &temp_diagram)?;
             new_line.push(fixed);
         }
 
-        diagram.lines[y] = new_line;
+        new_lines.push(new_line);
     }
+
+    diagram.lines = new_lines;
     Ok(())
 }
 
@@ -46,10 +55,11 @@ fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
         (true, true, true, false) => Ok('┴'),
         (true, true, false, true) => Ok('┬'),
         (true, false, true, true) => Ok('┤'),
+        (false, true, true, true) => Ok('├'),
         (true, false, true, false) => Ok('┘'),
-        (false, true, true, true) => Ok('└'),
-        (true, false, true, false) => Ok('┐'),
-        (false, true, true, false) => Ok('┌'),
+        (true, false, false, true) => Ok('┐'),
+        (false, true, true, false) => Ok('└'),
+        (false, true, false, true) => Ok('┌'),
         _ => Ok('+'),
     }
 }

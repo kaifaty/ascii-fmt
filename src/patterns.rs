@@ -11,9 +11,14 @@ pub enum DiagramType {
 pub fn detect_type(lines: &[String]) -> DiagramType {
     let has_arrows = lines.iter().any(|l| l.contains("->") || l.contains("=>") || l.contains('→'));
     let has_tree_symbols = lines.iter().any(|l| l.contains("├") || l.contains("└"));
-    let has_tree_indent = lines.iter().any(|l| {
-        l.trim_start().len() < l.len() && !l.trim().is_empty()
-    });
+    let has_tree_indent = {
+        let indent_levels: std::collections::HashSet<usize> = lines
+            .iter()
+            .filter(|l| !l.trim().is_empty())
+            .map(|l| l.len() - l.trim_start().len())
+            .collect();
+        indent_levels.len() >= 2
+    };
     let has_vertical_lines = lines.iter().any(|l| l.contains("│"));
     let has_all_corners = lines.iter().any(|l| l.contains("┌")) &&
                         lines.iter().any(|l| l.contains("┐")) &&
@@ -26,14 +31,16 @@ pub fn detect_type(lines: &[String]) -> DiagramType {
     }
 
     if has_tree_symbols || has_tree_indent {
-        return DiagramType::Tree;
+        if !has_all_corners && !has_arrows {
+            return DiagramType::Tree;
+        }
     }
 
     if has_arrows && has_all_corners {
         return DiagramType::Flowchart;
     }
 
-    if has_arrows {
+    if has_arrows && !has_tree_symbols && !has_tree_indent {
         return DiagramType::Flowchart;
     }
 
