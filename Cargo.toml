@@ -23,10 +23,6 @@ textwrap = "0.16"
 [dev-dependencies]
 criterion = "0.5"
 
-[[bench]]
-name = "formatter_benchmark"
-harness = false
-
 [profile.release]
 opt-level = 3
 lto = true
