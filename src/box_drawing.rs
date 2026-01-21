@@ -137,3 +137,418 @@ fn get_neighbor_char(x: usize, y: usize, diagram: &ParsedDiagram) -> Option<char
     }
     get_char_at(&diagram.lines[y], x)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fix_box_drawing_symbols_simple() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+-----+".to_string(),
+                "|     |".to_string(),
+                "+-----+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_to_cross() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "---+---".to_string(),
+                "  |".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_horizontal_line() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "-----".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().next(), Some('─'));
+    }
+
+    #[test]
+    fn test_fix_vertical_line() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "|".to_string(),
+                "|".to_string(),
+                "|".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().next(), Some('│'));
+    }
+
+    #[test]
+    fn test_fix_diagonal_forward() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "   /".to_string(),
+                "  / ".to_string(),
+                " /  ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_diagonal_backward() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "\\  ".to_string(),
+                " \\ ".to_string(),
+                "  \\".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_arrow_down() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " v ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('▼'));
+    }
+
+    #[test]
+    fn test_fix_arrow_up() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " ^ ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('▲'));
+    }
+
+    #[test]
+    fn test_fix_arrow_left() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " < ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('◀'));
+    }
+
+    #[test]
+    fn test_fix_arrow_right() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " > ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('▶'));
+    }
+
+    #[test]
+    fn test_fix_plus_cross() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "-+-".to_string(),
+                " | ".to_string(),
+                "-+-".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('┴'));
+    }
+
+    #[test]
+    fn test_fix_underscore_to_horizontal() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "_____".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().next(), Some('─'));
+    }
+
+    #[test]
+    fn test_fix_exclamation_to_vertical() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "!".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[0].chars().next(), Some('│'));
+    }
+
+    #[test]
+    fn test_is_diagonal() {
+        assert!(crate::utils::is_diagonal('/'));
+        assert!(crate::utils::is_diagonal('\\'));
+        assert!(crate::utils::is_diagonal('╱'));
+        assert!(crate::utils::is_diagonal('╲'));
+    }
+
+    #[test]
+    fn test_fix_empty_diagram() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert!(diagram.lines.is_empty());
+    }
+
+    #[test]
+    fn test_fix_box_with_corners() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+-+".to_string(),
+                "| |".to_string(),
+                "+-+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_box_drawing_preserves_length() {
+        let original_lines = vec![
+            "+-----+".to_string(),
+            "|     |".to_string(),
+            "+-----+".to_string(),
+        ];
+
+        let mut diagram = ParsedDiagram {
+            lines: original_lines.clone(),
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        fix_box_drawing_symbols(&mut diagram).unwrap();
+
+        assert_eq!(diagram.lines.len(), original_lines.len());
+        for (i, line) in diagram.lines.iter().enumerate() {
+            assert_eq!(line.len(), original_lines[i].len());
+        }
+    }
+
+    #[test]
+    fn test_fix_diagonal_unicode() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "   ╱".to_string(),
+                "  ╱ ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_with_all_directions() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " | ".to_string(),
+                "-+-".to_string(),
+                " | ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert_eq!(diagram.lines[1].chars().nth(1), Some('┼'));
+    }
+
+    #[test]
+    fn test_fix_horizontal_with_vertical_neighbors() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " | ".to_string(),
+                "---".to_string(),
+                " | ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_vertical_with_horizontal_neighbors() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "---".to_string(),
+                " | ".to_string(),
+                "---".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_box_drawing_mixed_characters() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+---+".to_string(),
+                "| A |".to_string(),
+                "+---+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+        assert!(diagram.lines[1].contains('A'));
+    }
+
+    #[test]
+    fn test_fix_box_drawing_preserves_text() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+--------+".to_string(),
+                "| Hello  |".to_string(),
+                "+--------+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        fix_box_drawing_symbols(&mut diagram).unwrap();
+
+        assert!(diagram.lines[1].contains("Hello"));
+    }
+
+    #[test]
+    fn test_fix_box_drawing_complex_box() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+---+---+".to_string(),
+                "| A | B |".to_string(),
+                "+---+---+".to_string(),
+                "| C | D |".to_string(),
+                "+---+---+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_corner_top_left() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " + ".to_string(),
+                " | ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_corner_top_right() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " + ".to_string(),
+                "  |".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_corner_bottom_left() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                " | ".to_string(),
+                " + ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_fix_plus_corner_bottom_right() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "  |".to_string(),
+                " + ".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        let result = fix_box_drawing_symbols(&mut diagram);
+        assert!(result.is_ok());
+    }
+}

@@ -81,3 +81,344 @@ impl Default for Options {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_options_clone() {
+        let options = Options {
+            width: 4,
+            style: Style::Detailed,
+            fix_box_drawing: false,
+            fix_whitespace: true,
+            preserve_empty_lines: false,
+            dry_run: true,
+            verbose: true,
+        };
+
+        let options_clone = options.clone();
+        assert_eq!(options_clone.width, 4);
+        assert_eq!(options_clone.style, Style::Detailed);
+        assert_eq!(options_clone.fix_box_drawing, false);
+        assert_eq!(options_clone.fix_whitespace, true);
+        assert_eq!(options_clone.preserve_empty_lines, false);
+        assert_eq!(options_clone.dry_run, true);
+        assert_eq!(options_clone.verbose, true);
+    }
+
+    #[test]
+    fn test_options_default() {
+        let options = Options::default();
+        assert_eq!(options.width, 2);
+        assert_eq!(options.style, Style::Standard);
+        assert_eq!(options.fix_box_drawing, true);
+        assert_eq!(options.fix_whitespace, true);
+        assert_eq!(options.preserve_empty_lines, true);
+        assert_eq!(options.dry_run, false);
+        assert_eq!(options.verbose, false);
+    }
+
+    #[test]
+    fn test_options_debug() {
+        let options = Options::default();
+        format!("{:?}", options);
+    }
+
+    #[test]
+    fn test_style_equality() {
+        assert_eq!(Style::Minimal, Style::Minimal);
+        assert_eq!(Style::Standard, Style::Standard);
+        assert_eq!(Style::Detailed, Style::Detailed);
+        assert_ne!(Style::Minimal, Style::Standard);
+        assert_ne!(Style::Standard, Style::Detailed);
+    }
+
+    #[test]
+    fn test_style_copy_and_clone() {
+        let style = Style::Standard;
+        let style_copy = style;
+        assert_eq!(style, style_copy);
+        let style_clone = style.clone();
+        assert_eq!(style, style_clone);
+    }
+
+    #[test]
+    fn test_options_from_cli_valid_minimal() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "minimal".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_ok());
+        let options = options.unwrap();
+        assert_eq!(options.style, Style::Minimal);
+    }
+
+    #[test]
+    fn test_options_from_cli_valid_standard() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_ok());
+        let options = options.unwrap();
+        assert_eq!(options.style, Style::Standard);
+    }
+
+    #[test]
+    fn test_options_from_cli_valid_detailed() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "detailed".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_ok());
+        let options = options.unwrap();
+        assert_eq!(options.style, Style::Detailed);
+    }
+
+    #[test]
+    fn test_options_from_cli_invalid_style() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "invalid_style".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_err());
+        assert!(options.unwrap_err().contains("Invalid style"));
+    }
+
+    #[test]
+    fn test_options_from_cli_case_insensitive() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "MINIMAL".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_ok());
+        assert_eq!(options.unwrap().style, Style::Minimal);
+    }
+
+    #[test]
+    fn test_options_from_cli_mixed_case() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "Standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options: Result<Options, String> = cli.try_into();
+        assert!(options.is_ok());
+        assert_eq!(options.unwrap().style, Style::Standard);
+    }
+
+    #[test]
+    fn test_options_preserves_width() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 5,
+            style: "standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert_eq!(options.width, 5);
+    }
+
+    #[test]
+    fn test_options_preserves_boolean_flags() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: false,
+            fix_whitespace: false,
+            preserve_empty_lines: false,
+            dry_run: true,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert_eq!(options.fix_box_drawing, false);
+        assert_eq!(options.fix_whitespace, false);
+        assert_eq!(options.preserve_empty_lines, false);
+        assert_eq!(options.dry_run, true);
+    }
+
+    #[test]
+    fn test_options_verbose_count() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 2,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert_eq!(options.verbose, true);
+    }
+
+    #[test]
+    fn test_options_verbose_zero() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert_eq!(options.verbose, false);
+    }
+
+    #[test]
+    fn test_options_all_flags_true() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert!(options.fix_box_drawing);
+        assert!(options.fix_whitespace);
+        assert!(options.preserve_empty_lines);
+        assert!(!options.dry_run);
+        assert!(!options.verbose);
+    }
+
+    #[test]
+    fn test_options_all_flags_false() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "standard".to_string(),
+            fix_box_drawing: false,
+            fix_whitespace: false,
+            preserve_empty_lines: false,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert!(!options.fix_box_drawing);
+        assert!(!options.fix_whitespace);
+        assert!(!options.preserve_empty_lines);
+        assert!(!options.dry_run);
+        assert!(!options.verbose);
+    }
+
+    #[test]
+    fn test_options_detailed_style() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 4,
+            style: "detailed".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let options = Options::try_from(cli).unwrap();
+        assert_eq!(options.style, Style::Detailed);
+        assert_eq!(options.width, 4);
+    }
+
+    #[test]
+    fn test_options_from_cli_error_message_format() {
+        let cli = Cli {
+            input: None,
+            output: None,
+            width: 2,
+            style: "badstyle".to_string(),
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
+
+        let result = Options::try_from(cli);
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("badstyle"));
+        assert!(error.contains("minimal"));
+        assert!(error.contains("standard"));
+        assert!(error.contains("detailed"));
+    }
+}
