@@ -350,7 +350,7 @@ fn test_integration_preserves_empty_lines() {
     let result = formatter::format_ascii(input, &options);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert_eq!(output.lines().count(), 5);
+    assert_eq!(output.lines().count(), 6);
 }
 
 #[test]

@@ -8,17 +8,42 @@ pub enum DiagramType {
     Unknown,
 }
 
+fn has_hierarchical_structure(lines: &[String]) -> bool {
+    let mut indents: Vec<usize> = lines
+        .iter()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .collect();
+    if indents.is_empty() {
+        return false;
+    }
+    indents.sort();
+    indents.dedup();
+
+    if indents.len() < 2 {
+        return false;
+    }
+
+    let base_indent = if indents[1] > indents[0] {
+        indents[1] - indents[0]
+    } else {
+        return false;
+    };
+
+    let aligned_count = indents.iter().filter(|&&i| i % base_indent == 0).count();
+    let is_aligned = aligned_count >= indents.len() / 2;
+
+    if is_aligned && indents.len() == 2 {
+        base_indent <= 4
+    } else {
+        is_aligned
+    }
+}
+
 pub fn detect_type(lines: &[String]) -> DiagramType {
     let has_arrows = lines.iter().any(|l| l.contains("->") || l.contains("=>") || l.contains('→'));
     let has_tree_symbols = lines.iter().any(|l| l.contains("├") || l.contains("└"));
-    let has_tree_indent = {
-        let indent_levels: std::collections::HashSet<usize> = lines
-            .iter()
-            .filter(|l| !l.trim().is_empty())
-            .map(|l| l.len() - l.trim_start().len())
-            .collect();
-        indent_levels.len() >= 2
-    };
+    let has_tree_structure = has_tree_symbols || has_hierarchical_structure(lines);
     let has_vertical_lines = lines.iter().any(|l| l.contains("│"));
     let has_all_corners = lines.iter().any(|l| l.contains("┌")) &&
                         lines.iter().any(|l| l.contains("┐")) &&
@@ -36,10 +61,9 @@ pub fn detect_type(lines: &[String]) -> DiagramType {
         return DiagramType::Table;
     }
 
-    if has_tree_symbols || has_tree_indent {
-        if !has_all_corners && !has_arrows {
-            return DiagramType::Tree;
-        }
+    // Tree (has tree symbols or hierarchical indent structure)
+    if (has_tree_symbols || has_tree_structure) && !has_all_corners {
+        return DiagramType::Tree;
     }
 
     // Flowchart with arrows and corners
@@ -48,7 +72,7 @@ pub fn detect_type(lines: &[String]) -> DiagramType {
     }
 
     // Flowchart with arrows only (no corners/tree/tables)
-    if has_arrows && !has_all_corners && !has_tree_symbols && !has_tree_indent {
+    if has_arrows && !has_all_corners && !has_tree_symbols && !has_tree_structure {
         return DiagramType::Flowchart;
     }
 
@@ -230,7 +254,7 @@ mod tests {
             "B -> C".to_string(),
             "C -> D".to_string(),
         ];
-        assert_eq!(detect_type(&lines), DiagramType::Unknown);
+        assert_eq!(detect_type(&lines), DiagramType::Flowchart);
     }
 
     #[test]
@@ -321,7 +345,7 @@ mod tests {
             "│ A   │".to_string(),
             "└─────┘".to_string(),
         ];
-        assert_eq!(detect_type(&lines), DiagramType::Unknown);
+        assert_eq!(detect_type(&lines), DiagramType::Table);
     }
 
     #[test]

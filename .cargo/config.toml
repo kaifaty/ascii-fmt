@@ -2,9 +2,6 @@
 # Use more parallel jobs for faster builds
 jobs = 4
 
-# Target for default build (empty = host target)
-target = ""
-
 [alias]
 # Convenient aliases for common build commands
 b = "build"

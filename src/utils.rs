@@ -34,7 +34,7 @@ pub fn align_to_grid(value: usize, grid_size: usize) -> usize {
     if grid_size == 0 {
         return value;
     }
-    ((value + grid_size - 1) / grid_size) * grid_size
+    value.div_ceil(grid_size) * grid_size
 }
 
 pub fn get_char_at(s: &str, index: usize) -> Option<char> {
