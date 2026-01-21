@@ -1,4 +1,4 @@
-use ascii_fmt::cli::Options;
+use ascii_fmt::cli::{Options, StyleStr};
 use ascii_fmt::formatter;
 use ascii_fmt::text_align::Style;
 use ascii_fmt::ResultT as Result;
@@ -390,10 +390,11 @@ fn test_integration_width_option() {
 #[test]
 fn test_integration_cli_parsing() {
     let cli = ascii_fmt::cli::Cli {
+        command: None,
         input: Some(PathBuf::from("test.txt")),
         output: Some(PathBuf::from("output.txt")),
         width: 4,
-        style: "detailed".to_string(),
+        style: StyleStr::Detailed,
         fix_box_drawing: true,
         fix_whitespace: true,
         preserve_empty_lines: false,
@@ -410,21 +411,24 @@ fn test_integration_cli_parsing() {
 }
 
 #[test]
-fn test_integration_cli_invalid_style() {
-    let cli = ascii_fmt::cli::Cli {
-        input: Some(PathBuf::from("test.txt")),
-        output: None,
-        width: 2,
-        style: "invalid_style".to_string(),
-        fix_box_drawing: true,
-        fix_whitespace: true,
-        preserve_empty_lines: true,
-        dry_run: false,
-        verbose: 0,
-    };
+fn test_integration_cli_valid_styles() {
+    for style_str in [StyleStr::Minimal, StyleStr::Standard, StyleStr::Detailed] {
+        let cli = ascii_fmt::cli::Cli {
+            command: None,
+            input: Some(PathBuf::from("test.txt")),
+            output: None,
+            width: 2,
+            style: style_str,
+            fix_box_drawing: true,
+            fix_whitespace: true,
+            preserve_empty_lines: true,
+            dry_run: false,
+            verbose: 0,
+        };
 
-    let options = Options::try_from(cli);
-    assert!(options.is_err());
+        let options = Options::try_from(cli);
+        assert!(options.is_ok());
+    }
 }
 
 #[test]
