@@ -43,7 +43,37 @@ fn handle_command(command: ascii_fmt::cli::Commands) -> Result<()> {
         ascii_fmt::cli::Commands::Docs { topic } => {
             print_help(topic);
         }
+        ascii_fmt::cli::Commands::OpencodeSetup { force } => {
+            install_opencode_plugin(force)?;
+        }
     }
+    Ok(())
+}
+
+fn install_opencode_plugin(force: bool) -> Result<()> {
+    let cwd = std::env::current_dir().map_err(ascii_fmt::error::Error::Io)?;
+    let plugin_dir = cwd.join(".opencode").join("plugins");
+    let plugin_path = plugin_dir.join("ascii-fmt.js");
+
+    std::fs::create_dir_all(&plugin_dir).map_err(ascii_fmt::error::Error::Io)?;
+
+    if plugin_path.exists() && !force {
+        eprintln!(
+            "OpenCode plugin already exists: {}\nRe-run with --force to overwrite.",
+            plugin_path.display()
+        );
+        return Ok(());
+    }
+
+    // Keep the plugin source in-repo and embed it into the binary.
+    const PLUGIN: &str = include_str!("../scripts/opencode-plugin.js");
+    std::fs::write(&plugin_path, PLUGIN).map_err(ascii_fmt::error::Error::Io)?;
+
+    eprintln!("Installed OpenCode plugin: {}", plugin_path.display());
+    eprintln!(
+        "Markdown fenced blocks supported: ```ascii, ```diagram, ```ascii-diagram"
+    );
+
     Ok(())
 }
 

@@ -343,7 +343,7 @@ mod tests {
             left: Some('a'),
             right: Some('b'),
         };
-        format!("{:?}", neighbors);
+        let _ = format!("{:?}", neighbors);
     }
 
     #[test]

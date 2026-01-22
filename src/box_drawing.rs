@@ -29,11 +29,123 @@ pub fn fix_box_drawing_symbols(diagram: &mut ParsedDiagram) -> Result<()> {
 fn fix_char(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
     match ch {
         '+' => fix_plus(x, y, diagram),
-        '-' | '_' => fix_horizontal(x, y, diagram),
-        '|' | '!' => fix_vertical(x, y, diagram),
+        '-' | '_' => {
+            if should_fix_horizontal(ch, x, y, diagram) {
+                fix_horizontal(x, y, diagram)
+            } else {
+                Ok(ch)
+            }
+        }
+        '|' | '!' => {
+            if should_fix_vertical(ch, x, y, diagram) {
+                fix_vertical(x, y, diagram)
+            } else {
+                Ok(ch)
+            }
+        }
+        '/' | '\\' => {
+            if should_fix_diagonal(ch, x, y, diagram) {
+                fix_diagonal(ch)
+            } else {
+                Ok(ch)
+            }
+        }
         c if is_diagonal(c) => fix_diagonal(c),
-        c if is_arrow_like(c) => fix_arrow(c),
+        c if is_arrow_like(c) => {
+            if should_fix_arrow(c, x, y, diagram) {
+                fix_arrow(c)
+            } else {
+                Ok(c)
+            }
+        }
         _ => Ok(ch),
+    }
+}
+
+fn should_fix_horizontal(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let right = get_neighbor_char(x + 1, y, diagram);
+    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let down = get_neighbor_char(x, y + 1, diagram);
+
+    if is_word_boundary_char(left) && is_word_boundary_char(right) {
+        return false;
+    }
+
+    let has_line_neighbor = left.map_or(false, is_horizontal_like)
+        || right.map_or(false, is_horizontal_like)
+        || up.map_or(false, is_vertical_like)
+        || down.map_or(false, is_vertical_like)
+        || left.map_or(false, is_arrow_like)
+        || right.map_or(false, is_arrow_like);
+
+    // Underscores/hyphens in free text should be preserved unless they connect to a line.
+    match ch {
+        '-' | '_' => has_line_neighbor,
+        _ => has_line_neighbor,
+    }
+}
+
+fn should_fix_vertical(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let right = get_neighbor_char(x + 1, y, diagram);
+    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let down = get_neighbor_char(x, y + 1, diagram);
+
+    // Don't convert separators inside words/identifiers.
+    if is_word_boundary_char(left) || is_word_boundary_char(right) {
+        return false;
+    }
+
+    // Convert when connected to surrounding lines or used standalone.
+    left.map_or(false, is_horizontal_like)
+        || right.map_or(false, is_horizontal_like)
+        || up.map_or(false, is_vertical_like)
+        || down.map_or(false, is_vertical_like)
+        || left.map_or(true, |c| c == ' ')
+        || right.map_or(true, |c| c == ' ')
+}
+
+fn should_fix_diagonal(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let right = get_neighbor_char(x + 1, y, diagram);
+    // Treat slashes in identifiers/paths as text.
+    if is_word_boundary_char(left) || is_word_boundary_char(right) {
+        return false;
+    }
+    true
+}
+
+fn is_word_boundary_char(ch: Option<char>) -> bool {
+    ch.map_or(false, |c| c.is_alphanumeric())
+}
+
+fn is_horizontal_like(ch: char) -> bool {
+    is_horizontal(ch) || matches!(ch, '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤')
+}
+
+fn is_vertical_like(ch: char) -> bool {
+    is_vertical(ch) || matches!(ch, '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤')
+}
+
+fn should_fix_arrow(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
+    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let right = get_neighbor_char(x + 1, y, diagram);
+
+    // If it is inside a word/identifier, keep it.
+    if is_word_boundary_char(left) && is_word_boundary_char(right) {
+        return false;
+    }
+
+    match ch {
+        // Letters in words (e.g. Service) should never turn into arrows.
+        'v' | '^' => !(is_word_boundary_char(left) || is_word_boundary_char(right)),
+        '<' | '>' => {
+            left.map_or(false, is_horizontal_like)
+                || right.map_or(false, is_horizontal_like)
+                || !(is_word_boundary_char(left) || is_word_boundary_char(right))
+        }
+        _ => true,
     }
 }
 

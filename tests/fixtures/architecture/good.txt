@@ -1,5 +1,5 @@
 ┌─────────────────────────┐
-│      API Gateway       │
+│      API Gateway        │
 ├─────────────┬───────────┤
 │  User       │  Service  │
 │  Service    │  Layer    │

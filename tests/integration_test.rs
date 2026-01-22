@@ -1,7 +1,6 @@
 use ascii_fmt::cli::{Options, StyleStr};
 use ascii_fmt::formatter;
 use ascii_fmt::text_align::Style;
-use ascii_fmt::ResultT as Result;
 use std::path::PathBuf;
 
 #[test]
@@ -400,6 +399,7 @@ fn test_integration_cli_parsing() {
         preserve_empty_lines: false,
         dry_run: false,
         verbose: 0,
+        align_boxes: false,
     };
 
     let options = Options::try_from(cli);
@@ -424,6 +424,7 @@ fn test_integration_cli_valid_styles() {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
+            align_boxes: false,
         };
 
         let options = Options::try_from(cli);
@@ -553,4 +554,140 @@ fn test_integration_all_styles() {
         let result = formatter::format_ascii(input, &options);
         assert!(result.is_ok(), "Failed for style: {:?}", style);
     }
+}
+
+#[test]
+fn test_integration_formats_markdown_example_test_md() {
+    let input = include_str!("fixtures/markdown/test.md");
+    let expected = include_str!("fixtures/markdown/test.good.md");
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(
+        output.trim_end_matches(&['\r', '\n'][..]),
+        expected.trim_end_matches(&['\r', '\n'][..]),
+    );
+}
+
+#[test]
+fn test_integration_preserves_word_characters_in_text() {
+    let input = "Service ts-rs ChaCha20/Argon2 Orange Pi/ C:\\Path\\to\\file";
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(output, input);
+}
+
+#[test]
+fn test_integration_markdown_fence_with_language_is_preserved() {
+    let input = "```text\n+---+\n| A |\n+---+\n```";
+    let expected = "```text\n┌───┐\n│ A │\n└───┘\n```";
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn test_integration_shrinks_overflowing_ascii_box_line_padding() {
+    let input = "+--------+\n| Hello  |\n| World   |\n+--------+";
+    let expected = "┌────────┐\n│ Hello  │\n│ World  │\n└────────┘";
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn test_integration_idempotent_on_markdown_example_test_md() {
+    let input = include_str!("fixtures/markdown/test.md");
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let once = formatter::format_ascii(input, &options).unwrap();
+    let twice = formatter::format_ascii(&once, &options).unwrap();
+
+    assert_eq!(
+        once.trim_end_matches(&['\r', '\n'][..]),
+        twice.trim_end_matches(&['\r', '\n'][..]),
+    );
+}
+
+#[test]
+fn test_integration_converts_diagonal_slashes_in_diagrams() {
+    let input = " / \n/  ";
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert!(output.contains("╱"));
+    assert!(!output.contains('/'));
+}
+
+#[test]
+fn test_integration_converts_hyphen_runs_but_not_hyphens_in_words() {
+    let input = "foo-bar\n-----";
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert!(output.contains("foo-bar"));
+    assert!(output.contains("─────"));
 }

@@ -1,7 +1,7 @@
 use crate::box_drawing::fix_box_drawing_symbols;
 use crate::cli::Options;
 use crate::error::Result;
-use crate::grid::{analyze_grid, normalize_whitespace};
+use crate::grid::{analyze_grid, normalize_whitespace, shrink_overflowing_box_lines};
 use crate::parser::parse;
 use crate::text_align::align_text_content;
 
@@ -12,12 +12,15 @@ pub fn format_ascii(input: &str, options: &Options) -> Result<String> {
 
     let mut formatted = diagram.clone();
 
-    if options.fix_box_drawing {
-        fix_box_drawing_symbols(&mut formatted)?;
+    if options.fix_whitespace {
+        shrink_overflowing_box_lines(&mut formatted)?;
+        normalize_whitespace(&mut formatted, &grid_metrics)?;
     }
 
-    if options.fix_whitespace {
-        normalize_whitespace(&mut formatted, &grid_metrics)?;
+    // Run box-drawing fixes after whitespace normalization so corner/junction
+    // detection sees the final aligned borders.
+    if options.fix_box_drawing {
+        fix_box_drawing_symbols(&mut formatted)?;
     }
 
     align_text_content(&mut formatted, &grid_metrics, options.style)?;

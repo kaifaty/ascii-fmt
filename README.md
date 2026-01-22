@@ -125,6 +125,54 @@ ascii-fmt diagram.txt > output.txt
 cat diagram.txt | ascii-fmt > output.txt
 ```
 
+## Интеграция с OpenCode (автоформатирование после записи файлов)
+
+OpenCode умеет загружать project-level плагины из `.opencode/plugins/` и вызывать их на событиях файлов (например, `file.edited`). Это позволяет автоматически запускать `ascii-fmt` каждый раз, когда агент записал файл с диаграммой.
+
+Официальная документация OpenCode:
+- https://opencode.ai/docs/plugins/
+- https://opencode.ai/docs/config/
+- https://opencode.ai/docs/formatters/
+
+### Быстрая настройка (рекомендуется)
+
+В корне вашего проекта:
+
+```bash
+# (1) Убедитесь, что ascii-fmt установлен и доступен в PATH
+cargo install ascii-fmt
+
+# (2) Сгенерируйте OpenCode plugin в .opencode/plugins/
+ascii-fmt opencode-setup
+```
+
+Если вы ставите `ascii-fmt` через npm, можно запустить установщик напрямую (без cargo):
+
+```bash
+npx ascii-fmt-opencode-setup
+```
+
+В результате появится файл:
+- `.opencode/plugins/ascii-fmt.js`
+
+### Как помечать диаграммы в Markdown
+
+Плагин форматирует только fenced-блоки с языками `ascii`, `diagram`, `ascii-diagram`.
+
+```markdown
+```ascii
++---+
+| A |
++---+
+```
+```
+
+### Поведение и ограничения
+
+- Markdown: форматируются только помеченные fenced-блоки; остальной текст файла не трогается.
+- Не-Markdown: файл форматируется целиком только если он похож на диаграмму (консервативная эвристика), чтобы не ломать обычный текст.
+- Ошибки форматирования: fail-open (плагин логирует warning через OpenCode и не блокирует работу).
+
 ### Опции
 
 ```bash
@@ -166,7 +214,7 @@ Options:
 **Output** (исправленный):
 ```
 ┌─────────────────────────┐
-│      API Gateway       │
+│      API Gateway        │
 ├─────────────┬───────────┤
 │  User       │  Service  │
 │  Service    │  Layer    │

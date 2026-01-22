@@ -77,19 +77,155 @@ fn find_horizontal_positions(lines: &[String]) -> Vec<usize> {
 pub fn normalize_whitespace(diagram: &mut ParsedDiagram, metrics: &GridMetrics) -> Result<()> {
     for line in &mut diagram.lines {
         let trimmed = line.trim_end().to_string();
-        let current_len = UnicodeWidthStr::width(trimmed.as_str());
+        line.clear();
+        line.push_str(&trimmed);
+
+        // Avoid padding when we only have the fallback grid width.
+        if metrics.column_width <= 2 {
+            continue;
+        }
+
+        let current_len = UnicodeWidthStr::width(line.as_str());
         let target_len = align_to_grid(current_len, metrics.column_width);
 
         if current_len < target_len {
-            line.clear();
-            line.push_str(&trimmed);
             line.push_str(&" ".repeat(target_len - current_len));
-        } else {
-            line.clear();
-            line.push_str(&trimmed);
         }
     }
     Ok(())
+}
+
+/// Shrink lines that overflow a box by trimming padding next to vertical borders.
+///
+/// This is a conservative fix for common AI output where one line exceeds the
+/// box width due to extra spaces around text, causing right borders to drift.
+pub fn shrink_overflowing_box_lines(diagram: &mut ParsedDiagram) -> Result<()> {
+    use std::collections::HashMap;
+
+    let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (idx, line) in diagram.lines.iter().enumerate() {
+        let indent = leading_whitespace_len(line);
+        groups.entry(indent).or_default().push(idx);
+    }
+
+    for (indent, line_indices) in groups {
+        let lengths: Vec<usize> = line_indices
+            .iter()
+            .map(|&i| diagram.lines[i].chars().count())
+            .filter(|&len| len > 0)
+            .collect();
+
+        let Some(target_len) = most_common(&lengths) else {
+            continue;
+        };
+
+        for &i in &line_indices {
+            let line_len = diagram.lines[i].chars().count();
+            if line_len <= target_len {
+                continue;
+            }
+
+            let mut chars: Vec<char> = diagram.lines[i].chars().collect();
+            let mut excess = line_len - target_len;
+
+            while excess > 0 {
+                let Some(remove_idx) = find_border_padding_space(&chars, indent) else {
+                    break;
+                };
+                chars.remove(remove_idx);
+                excess -= 1;
+            }
+
+            diagram.lines[i] = chars.into_iter().collect();
+        }
+    }
+
+    Ok(())
+}
+
+fn leading_whitespace_len(line: &str) -> usize {
+    line.chars().take_while(|c| *c == ' ' || *c == '\t').count()
+}
+
+fn is_vertical_border(ch: char) -> bool {
+    matches!(ch, '│' | '|')
+}
+
+fn find_border_padding_space(chars: &[char], min_index: usize) -> Option<usize> {
+    find_space_before_vertical_border(chars, min_index, false)
+        .or_else(|| find_space_after_vertical_border(chars, min_index, false))
+        .or_else(|| find_space_before_vertical_border(chars, min_index, true))
+        .or_else(|| find_space_after_vertical_border(chars, min_index, true))
+}
+
+fn find_space_before_vertical_border(
+    chars: &[char],
+    min_index: usize,
+    allow_border_left: bool,
+) -> Option<usize> {
+    for i in (min_index..chars.len()).rev() {
+        if chars[i] != ' ' {
+            continue;
+        }
+
+        let next = chars.get(i + 1).copied();
+        if !next.map_or(false, is_vertical_border) {
+            continue;
+        }
+
+        let mut run_start = i;
+        while run_start > min_index && chars[run_start - 1] == ' ' {
+            run_start -= 1;
+        }
+
+        if run_start == min_index {
+            continue;
+        }
+
+        let prev_non_space = chars[run_start - 1];
+        if !allow_border_left && is_vertical_border(prev_non_space) {
+            continue;
+        }
+
+        return Some(i);
+    }
+
+    None
+}
+
+fn find_space_after_vertical_border(
+    chars: &[char],
+    min_index: usize,
+    allow_border_right: bool,
+) -> Option<usize> {
+    for i in min_index..chars.len() {
+        if chars[i] != ' ' {
+            continue;
+        }
+
+        let prev = i.checked_sub(1).and_then(|j| chars.get(j)).copied();
+        if !prev.map_or(false, is_vertical_border) {
+            continue;
+        }
+
+        let mut run_end = i;
+        while run_end + 1 < chars.len() && chars[run_end + 1] == ' ' {
+            run_end += 1;
+        }
+
+        if run_end + 1 >= chars.len() {
+            continue;
+        }
+
+        let next_non_space = chars[run_end + 1];
+        if !allow_border_right && is_vertical_border(next_non_space) {
+            continue;
+        }
+
+        return Some(i);
+    }
+
+    None
 }
 
 fn align_to_grid(value: usize, grid_size: usize) -> usize {

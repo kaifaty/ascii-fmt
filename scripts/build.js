@@ -25,10 +25,15 @@ function error(message) {
 
 function exec(command, options = {}) {
   try {
-    return execSync(command, {
+    const output = execSync(command, {
       stdio: options.silent ? 'pipe' : 'inherit',
       ...options,
-    }).toString();
+    });
+
+    // When stdio is set to 'inherit', Node returns null.
+    if (output == null) return '';
+    if (Buffer.isBuffer(output)) return output.toString('utf8');
+    return String(output);
   } catch (err) {
     if (options.silent) return null;
     error(`Command failed: ${command}\n${err.message}`);

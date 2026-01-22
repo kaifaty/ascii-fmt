@@ -28,9 +28,10 @@ fn is_text_line(line: &str) -> bool {
 }
 
 fn align_text_in_line(line: &str, style: Style) -> String {
-    let trimmed = line.trim();
+    let (indent, rest) = split_leading_whitespace(line);
+    let trimmed = rest.trim();
     let text_len = UnicodeWidthStr::width(trimmed);
-    let original_len = UnicodeWidthStr::width(line);
+    let original_len = UnicodeWidthStr::width(rest);
 
     if trimmed.is_empty() {
         return String::new();
@@ -41,10 +42,32 @@ fn align_text_in_line(line: &str, style: Style) -> String {
     }
 
     match style {
-        Style::Minimal => format!("{}{}", trimmed, " ".repeat(original_len - text_len)),
-        Style::Standard => format!("{}{}", trimmed, " ".repeat(original_len - text_len)),
-        Style::Detailed => center_text(trimmed, original_len),
+        Style::Minimal => format!(
+            "{}{}{}",
+            indent,
+            trimmed,
+            " ".repeat(original_len - text_len)
+        ),
+        Style::Standard => format!(
+            "{}{}{}",
+            indent,
+            trimmed,
+            " ".repeat(original_len - text_len)
+        ),
+        Style::Detailed => format!("{}{}", indent, center_text(trimmed, original_len)),
     }
+}
+
+fn split_leading_whitespace(s: &str) -> (&str, &str) {
+    let mut split_at = 0;
+    for (idx, ch) in s.char_indices() {
+        if ch != ' ' && ch != '\t' {
+            split_at = idx;
+            break;
+        }
+        split_at = idx + ch.len_utf8();
+    }
+    s.split_at(split_at)
 }
 
 fn center_text(text: &str, width: usize) -> String {
@@ -176,19 +199,19 @@ mod tests {
     #[test]
     fn test_align_text_in_line_minimal_style() {
         let result = align_text_in_line("  hello  ", Style::Minimal);
-        assert_eq!(result, "hello    ");
+        assert_eq!(result, "  hello  ");
     }
 
     #[test]
     fn test_align_text_in_line_standard_style() {
         let result = align_text_in_line("  hello  ", Style::Standard);
-        assert_eq!(result, "hello    ");
+        assert_eq!(result, "  hello  ");
     }
 
     #[test]
     fn test_align_text_in_line_detailed_style() {
         let result = align_text_in_line("  hello  ", Style::Detailed);
-        assert_eq!(result, "  hello  ");
+        assert_eq!(result, "   hello ");
     }
 
     #[test]
@@ -200,7 +223,7 @@ mod tests {
     #[test]
     fn test_align_text_in_line_unicode() {
         let result = align_text_in_line("  你好  ", Style::Minimal);
-        assert_eq!(result, "你好    ");
+        assert_eq!(result, "  你好  ");
     }
 
     #[test]
@@ -303,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_align_text_content_with_all_styles() {
-        let mut diagram = ParsedDiagram {
+        let diagram = ParsedDiagram {
             lines: vec!["  hello  ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };

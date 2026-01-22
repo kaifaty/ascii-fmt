@@ -29,7 +29,8 @@
     "bench": "cargo bench"
   },
   "bin": {
-    "ascii-fmt": "./bin/ascii-fmt"
+    "ascii-fmt": "./bin/ascii-fmt",
+    "ascii-fmt-opencode-setup": "./scripts/opencode-setup.js"
   },
   "os": [
     "darwin",

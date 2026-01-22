@@ -89,13 +89,6 @@ pub enum Commands {
         /// Show specific topic: 'examples', 'api', 'integration', 'file-formats'
         topic: Option<String>,
     },
-
-    /// Install OpenCode plugin for auto-formatting ASCII diagrams on file edits
-    OpencodeSetup {
-        /// Overwrite existing .opencode/plugins/ascii-fmt.js if present
-        #[arg(long, default_value_t = false)]
-        force: bool,
-    },
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -199,7 +192,7 @@ mod tests {
     #[test]
     fn test_options_debug() {
         let options = Options::default();
-        let _ = format!("{:?}", options);
+        format!("{:?}", options);
     }
 
     #[test]
@@ -233,7 +226,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -255,7 +247,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -277,7 +268,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -299,7 +289,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -320,7 +309,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -341,7 +329,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -361,7 +348,6 @@ mod tests {
             preserve_empty_lines: false,
             dry_run: true,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -384,7 +370,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 2,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -404,7 +389,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -424,7 +408,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -448,7 +431,6 @@ mod tests {
             preserve_empty_lines: false,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -472,7 +454,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -493,7 +474,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();

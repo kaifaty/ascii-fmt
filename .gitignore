@@ -23,6 +23,7 @@ cobertura.xml
 
 # Documentation
 /doc/
+node_modules
 
 # Misc
 *.log
