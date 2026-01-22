@@ -44,14 +44,14 @@ cargo install ascii-fmt
 ### Из исходников
 
 ```bash
-git clone https://github.com/yourusername/ascii-fmt.git
+git clone https://github.com/kaifaty/ascii-fmt.git
 cd ascii-fmt
 cargo install --path .
 ```
 
 ### Скачать готовые бинарники
 
-Готовые бинарники для разных платформ доступны в [GitHub Releases](https://github.com/yourusername/ascii-fmt/releases).
+Готовые бинарники для разных платформ доступны в [GitHub Releases](https://github.com/kaifaty/ascii-fmt/releases).
 
 Поддерживаемые платформы:
 - **macOS**: x86_64 (Intel), aarch64 (Apple Silicon)
@@ -434,7 +434,7 @@ Contributions приветствуются! Пожалуйста, ознаком
 ```bash
 # Fork репозитория
 # Клонируйте ваш форк
-git clone https://github.com/yourusername/ascii-fmt.git
+git clone https://github.com/kaifaty/ascii-fmt.git
 cd ascii-fmt
 
 # Создайте ветку для фичи
@@ -488,7 +488,7 @@ cargo install --release ascii-fmt
 
 - [Crates.io](https://crates.io/crates/ascii-fmt)
 - [Documentation](https://docs.rs/ascii-fmt)
-- [GitHub Issues](https://github.com/yourusername/ascii-fmt/issues)
+- [GitHub Issues](https://github.com/kaifaty/ascii-fmt/issues)
 - [Changelog](CHANGELOG.md)
 
 ---

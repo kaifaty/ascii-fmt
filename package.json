@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ascii-fmt.git"
+    "url": "https://github.com/kaifaty/ascii-fmt.git"
   },
   "keywords": [
     "ascii",
@@ -53,7 +53,7 @@
     "scripts"
   ],
   "bugs": {
-    "url": "https://github.com/yourusername/ascii-fmt/issues"
+    "url": "https://github.com/kaifaty/ascii-fmt/issues"
   },
-  "homepage": "https://github.com/yourusername/ascii-fmt#readme"
+  "homepage": "https://github.com/kaifaty/ascii-fmt#readme"
 }
