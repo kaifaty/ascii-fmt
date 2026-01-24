@@ -23,10 +23,10 @@ cobertura.xml
 
 # Documentation
 /doc/
-bin
-.opencode
-expamples
-node_modules
+/bin/
+/.opencode/
+/examples/
+/node_modules/
 
 # Misc
 *.log

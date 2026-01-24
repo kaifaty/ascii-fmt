@@ -170,29 +170,18 @@ fn test_format_architecture_diagram() {
 
 ## Benchmarks
 
-При добавлении критических для производительности изменений:
+Сейчас в репозитории не закреплён benchmark harness (`benches/`).
 
-1. Добавьте benchmark в `benches/formatter_benchmark.rs`:
-   ```rust
-   use criterion::{black_box, criterion_group, criterion_main, Criterion};
+Если вы вносите критические для производительности изменения:
 
-   fn bench_new_feature(c: &mut Criterion) {
-       let input = /* ... */;
-       c.bench_function("new_feature", |b| {
-           b.iter(|| new_feature(black_box(input)))
-       });
-   }
-
-   criterion_group!(benches, bench_new_feature);
-   criterion_main!(benches);
-   ```
-
-2. Запустите benchmarks:
+1. Зафиксируйте baseline в release-профиле на репрезентативном инпуте (например, fixture):
    ```bash
-   cargo bench
+   time cargo run --release -- < input.txt
    ```
 
-3. Убедитесь, что производительность не ухудшилась
+2. Внесите изменения
+
+3. Повторите тот же замер и опишите дельту в PR
 
 ## Process для Merge
 

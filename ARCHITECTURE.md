@@ -678,22 +678,12 @@ fn test_format_architecture_diagram() {
 
 ### Benchmarks
 
-Performance testing:
+Benchmarks are not committed by default (there is no `benches/` harness in this repo).
 
-```rust
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+For performance work, measure using a release build on representative fixtures:
 
-fn bench_format_diagram(c: &mut Criterion) {
-    let input = include_str!("../tests/fixtures/large_diagram.txt");
-    let options = Options::default();
-
-    c.bench_function("format_large_diagram", |b| {
-        b.iter(|| format_ascii(black_box(input), black_box(&options)))
-    });
-}
-
-criterion_group!(benches, bench_format_diagram);
-criterion_main!(benches);
+```bash
+time cargo run --release -- < input.txt
 ```
 
 ## Extensibility

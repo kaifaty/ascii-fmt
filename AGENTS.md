@@ -477,11 +477,11 @@ pub fn parse(input: &str) -> Result<ParsedDiagram>
 
 ### Task: Performance Optimization
 
-1. Benchmark current performance (`cargo bench`)
+1. Capture baseline performance (e.g. `time cargo run --release -- < input.txt`)
 2. Profile hot paths
 3. Optimize algorithm
 4. Verify no regression
-5. Update benchmarks
+5. Re-run the same measurement and record delta
 6. Commit with `perf:` prefix
 
 ### Task: Refactoring
@@ -553,7 +553,6 @@ pub fn parse(input: &str) -> Result<ParsedDiagram> {
 | `clap` | CLI argument parsing | 4.5 |
 | `thiserror` | Error derive macros | 1.0 |
 | `unicode-display-width` | Display width calculation | 0.3 |
-| `criterion` | Benchmarking (dev-dep) | 0.5 |
 
 ### Adding New Dependencies
 
@@ -640,8 +639,8 @@ cargo clippy -- -D warnings
 # 3. Run tests
 cargo test
 
-# 4. (Optional) Run benchmarks
-cargo bench
+# 4. (Optional) Run a release perf sanity check
+time cargo run --release -- < input.txt
 ```
 
 ### Release Process
