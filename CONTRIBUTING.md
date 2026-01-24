@@ -78,7 +78,7 @@ cargo clippy -- -D warnings
 - ❌ Не использовать `unwrap()` - используйте `?` для propagation ошибок
 - ❌ Не использовать `expect()` в production code
 - ❌ Не подавлять ошибки (`catch e {}`)
-- ✅ Использовать `anyhow::Result` для error handling
+- ✅ Использовать `crate::error::Result` + `thiserror` для error handling
 - ✅ Добавлять unit tests для новой функциональности
 
 ### Документация

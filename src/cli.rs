@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 Common issues fixed:
   • Misaligned grid lines and boxes
-  • Incorrect box-drawing symbols (+, -, | → ┼, ─, │)
+  • Incorrect box-drawing symbols (+, -, | -> \u{253c}, \u{2500}, \u{2502})
   • Inconsistent spacing between elements
   • Broken table and tree structures
 
@@ -39,7 +39,12 @@ pub struct Cli {
     )]
     pub input: Option<PathBuf>,
 
-    #[arg(short, long, value_name = "FILE", help = "Output file path. If omitted, writes to stdout.")]
+    #[arg(
+        short,
+        long,
+        value_name = "FILE",
+        help = "Output file path. If omitted, writes to stdout."
+    )]
     pub output: Option<PathBuf>,
 
     #[arg(
@@ -63,19 +68,31 @@ pub struct Cli {
     )]
     pub style: StyleStr,
 
-    #[arg(long, default_value_t = true, help = "Fix box-drawing symbols (+, -, | → ┼, ─, │, etc.)")]
+    #[arg(
+        long,
+        default_value_t = true,
+        help = "Fix box-drawing symbols (+, -, | -> \u{253c}, \u{2500}, \u{2502}, etc.)"
+    )]
     pub fix_box_drawing: bool,
 
-    #[arg(long, default_value_t = true, help = "Normalize whitespace and spacing")]
+    #[arg(
+        long,
+        default_value_t = true,
+        help = "Normalize whitespace and spacing"
+    )]
     pub fix_whitespace: bool,
 
-    #[arg(long, default_value_t = false, help = "Auto-align box widths to fit content")]
-    pub align_boxes: bool,
-
-    #[arg(long, default_value_t = true, help = "Preserve empty lines in the output")]
+    #[arg(
+        long,
+        default_value_t = true,
+        help = "Preserve empty lines in the output"
+    )]
     pub preserve_empty_lines: bool,
 
-    #[arg(long, help = "Show formatted output without writing to file (useful for previewing)")]
+    #[arg(
+        long,
+        help = "Show formatted output without writing to file (useful for previewing)"
+    )]
     pub dry_run: bool,
 
     #[arg(short, long, action = clap::ArgAction::Count, help = "Verbose output (-v, -vv for more details)")]
@@ -92,9 +109,13 @@ pub enum Commands {
 
     /// Install OpenCode plugin for auto-formatting ASCII diagrams on file edits
     OpencodeSetup {
-        /// Overwrite existing .opencode/plugins/ascii-fmt.js if present
+        /// Overwrite existing OpenCode plugin file if present
         #[arg(long, default_value_t = false)]
         force: bool,
+
+        /// Install into the current project (.opencode/plugins/) instead of global OpenCode config (~/.config/opencode/plugins/)
+        #[arg(long, default_value_t = false)]
+        project: bool,
     },
 }
 
@@ -233,7 +254,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -255,7 +275,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -277,7 +296,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -299,7 +317,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -320,7 +337,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options: Result<Options, String> = cli.try_into();
@@ -341,7 +357,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -361,7 +376,6 @@ mod tests {
             preserve_empty_lines: false,
             dry_run: true,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -384,7 +398,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 2,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -404,7 +417,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -424,7 +436,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -448,7 +459,6 @@ mod tests {
             preserve_empty_lines: false,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -472,7 +482,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();
@@ -483,7 +492,9 @@ mod tests {
     #[test]
     fn test_options_with_command() {
         let cli = Cli {
-            command: Some(Commands::Docs { topic: Some("examples".to_string()) }),
+            command: Some(Commands::Docs {
+                topic: Some("examples".to_string()),
+            }),
             input: None,
             output: None,
             width: 2,
@@ -493,7 +504,6 @@ mod tests {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli).unwrap();

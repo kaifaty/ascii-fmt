@@ -41,14 +41,16 @@ fn has_hierarchical_structure(lines: &[String]) -> bool {
 }
 
 pub fn detect_type(lines: &[String]) -> DiagramType {
-    let has_arrows = lines.iter().any(|l| l.contains("->") || l.contains("=>") || l.contains('→'));
+    let has_arrows = lines
+        .iter()
+        .any(|l| l.contains("->") || l.contains("=>") || l.contains('→'));
     let has_tree_symbols = lines.iter().any(|l| l.contains("├") || l.contains("└"));
     let has_tree_structure = has_tree_symbols || has_hierarchical_structure(lines);
     let has_vertical_lines = lines.iter().any(|l| l.contains("│"));
-    let has_all_corners = lines.iter().any(|l| l.contains("┌")) &&
-                        lines.iter().any(|l| l.contains("┐")) &&
-                        lines.iter().any(|l| l.contains("└")) &&
-                        lines.iter().any(|l| l.contains("┘"));
+    let has_all_corners = lines.iter().any(|l| l.contains("┌"))
+        && lines.iter().any(|l| l.contains("┐"))
+        && lines.iter().any(|l| l.contains("└"))
+        && lines.iter().any(|l| l.contains("┘"));
     let has_tables = lines.iter().any(|l| l.contains("┬") || l.contains("┼"));
 
     // Table with corners
@@ -112,10 +114,7 @@ mod tests {
 
     #[test]
     fn test_detect_type_flowchart_with_arrows() {
-        let lines = vec![
-            "A -> B".to_string(),
-            "B => C".to_string(),
-        ];
+        let lines = vec!["A -> B".to_string(), "B => C".to_string()];
         assert_eq!(detect_type(&lines), DiagramType::Flowchart);
     }
 
@@ -224,10 +223,7 @@ mod tests {
 
     #[test]
     fn test_detect_type_unknown() {
-        let lines = vec![
-            "hello".to_string(),
-            "world".to_string(),
-        ];
+        let lines = vec!["hello".to_string(), "world".to_string()];
         assert_eq!(detect_type(&lines), DiagramType::Unknown);
     }
 
@@ -350,10 +346,7 @@ mod tests {
 
     #[test]
     fn test_detect_type_sequence_without_layers() {
-        let lines = vec![
-            "│ A │ B │".to_string(),
-            "│   │   │".to_string(),
-        ];
+        let lines = vec!["│ A │ B │".to_string(), "│   │   │".to_string()];
         assert_eq!(detect_type(&lines), DiagramType::Sequence);
     }
 

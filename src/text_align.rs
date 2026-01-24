@@ -1,7 +1,8 @@
+use crate::display_width::display_width;
 use crate::error::Result;
 use crate::grid::GridMetrics;
 use crate::parser::ParsedDiagram;
-use unicode_width::UnicodeWidthStr;
+use crate::utils::is_box_drawing_char;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Style {
@@ -24,14 +25,25 @@ pub fn align_text_content(
 }
 
 fn is_text_line(line: &str) -> bool {
-    !line.chars().all(|c| matches!(c, '│' | '─' | '┌' | '┐' | '└' | '┘' | '├' | '┤' | '┬' | '┴' | '┼' | ' '))
+    !line.chars().all(|c| {
+        matches!(
+            c,
+            '│' | '─' | '┌' | '┐' | '└' | '┘' | '├' | '┤' | '┬' | '┴' | '┼' | ' '
+        )
+    })
 }
 
 fn align_text_in_line(line: &str, style: Style) -> String {
+    if matches!(style, Style::Standard | Style::Detailed) {
+        if let Some(centered) = try_center_single_cell_box_line(line) {
+            return centered;
+        }
+    }
+
     let (indent, rest) = split_leading_whitespace(line);
     let trimmed = rest.trim();
-    let text_len = UnicodeWidthStr::width(trimmed);
-    let original_len = UnicodeWidthStr::width(rest);
+    let text_len = display_width(trimmed);
+    let original_len = display_width(rest);
 
     if trimmed.is_empty() {
         return String::new();
@@ -58,6 +70,56 @@ fn align_text_in_line(line: &str, style: Style) -> String {
     }
 }
 
+fn try_center_single_cell_box_line(line: &str) -> Option<String> {
+    let (indent, rest) = split_leading_whitespace(line);
+    let rest = rest.trim_end_matches(&[' ', '\t'][..]);
+    let (last_byte, last_ch) = rest.char_indices().last()?;
+    let first_ch = rest.chars().next()?;
+
+    if !is_vertical_border(first_ch) || !is_vertical_border(last_ch) {
+        return None;
+    }
+
+    let inner = &rest[first_ch.len_utf8()..last_byte];
+    if inner.trim().is_empty() {
+        return None;
+    }
+
+    // Don't touch lines that contain nested box-drawing inside the cell.
+    if inner.chars().any(is_box_drawing_char) {
+        return None;
+    }
+    if inner.chars().any(is_vertical_border) {
+        return None;
+    }
+
+    let inner_width = display_width(inner);
+    let content = inner.trim();
+
+    let content_width = display_width(content);
+    if content_width >= inner_width {
+        return None;
+    }
+
+    let padding = inner_width - content_width;
+    let left_pad = padding / 2;
+    let right_pad = padding - left_pad;
+
+    let mut out = String::with_capacity(line.len() + 8);
+    out.push_str(indent);
+    out.push(first_ch);
+    out.push_str(&" ".repeat(left_pad));
+    out.push_str(content);
+    out.push_str(&" ".repeat(right_pad));
+    out.push(last_ch);
+
+    Some(out)
+}
+
+fn is_vertical_border(ch: char) -> bool {
+    matches!(ch, '│' | '║' | '|')
+}
+
 fn split_leading_whitespace(s: &str) -> (&str, &str) {
     let mut split_at = 0;
     for (idx, ch) in s.char_indices() {
@@ -71,7 +133,7 @@ fn split_leading_whitespace(s: &str) -> (&str, &str) {
 }
 
 fn center_text(text: &str, width: usize) -> String {
-    let text_len = UnicodeWidthStr::width(text);
+    let text_len = display_width(text);
     if text_len >= width {
         return text.to_string();
     }
@@ -109,10 +171,7 @@ mod tests {
     #[test]
     fn test_align_text_content_simple() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "  hello  ".to_string(),
-                "  world  ".to_string(),
-            ],
+            lines: vec!["  hello  ".to_string(), "  world  ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -291,7 +350,7 @@ mod tests {
         let result = align_text_in_line("  你好  ", Style::Detailed);
         let trimmed = "你好";
         let original_len = 8;
-        let expected_len = UnicodeWidthStr::width(trimmed);
+        let expected_len = display_width(trimmed);
         let padding = original_len - expected_len;
         let left_pad = padding / 2;
 

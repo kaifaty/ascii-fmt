@@ -12,7 +12,9 @@ fn main() -> Result<()> {
 
     let input_path = cli.input.clone();
     let output_path = cli.output.clone();
-    let options: ascii_fmt::cli::Options = cli.try_into().map_err(|e| ascii_fmt::error::Error::InvalidInput(e))?;
+    let options: ascii_fmt::cli::Options = cli
+        .try_into()
+        .map_err(ascii_fmt::error::Error::InvalidInput)?;
 
     if options.verbose {
         eprintln!("ascii-fmt v{}", env!("CARGO_PKG_VERSION"));
@@ -43,16 +45,22 @@ fn handle_command(command: ascii_fmt::cli::Commands) -> Result<()> {
         ascii_fmt::cli::Commands::Docs { topic } => {
             print_help(topic);
         }
-        ascii_fmt::cli::Commands::OpencodeSetup { force } => {
-            install_opencode_plugin(force)?;
+        ascii_fmt::cli::Commands::OpencodeSetup { force, project } => {
+            install_opencode_plugin(force, project)?;
         }
     }
     Ok(())
 }
 
-fn install_opencode_plugin(force: bool) -> Result<()> {
-    let cwd = std::env::current_dir().map_err(ascii_fmt::error::Error::Io)?;
-    let plugin_dir = cwd.join(".opencode").join("plugins");
+fn install_opencode_plugin(force: bool, project: bool) -> Result<()> {
+    let plugin_dir = if project {
+        // Project-level plugin.
+        let cwd = std::env::current_dir().map_err(ascii_fmt::error::Error::Io)?;
+        cwd.join(".opencode").join("plugins")
+    } else {
+        // Global plugin.
+        resolve_opencode_config_dir()?.join("plugins")
+    };
     let plugin_path = plugin_dir.join("ascii-fmt.js");
 
     std::fs::create_dir_all(&plugin_dir).map_err(ascii_fmt::error::Error::Io)?;
@@ -70,11 +78,60 @@ fn install_opencode_plugin(force: bool) -> Result<()> {
     std::fs::write(&plugin_path, PLUGIN).map_err(ascii_fmt::error::Error::Io)?;
 
     eprintln!("Installed OpenCode plugin: {}", plugin_path.display());
-    eprintln!(
-        "Markdown fenced blocks supported: ```ascii, ```diagram, ```ascii-diagram"
-    );
+    eprintln!("Markdown fenced blocks supported: ```ascii, ```diagram, ```ascii-diagram");
 
     Ok(())
+}
+
+fn resolve_opencode_config_dir() -> Result<std::path::PathBuf> {
+    // Follow OpenCode config docs:
+    // - Global config: ~/.config/opencode/opencode.json
+    // - Global plugins: ~/.config/opencode/plugins/
+    // Also respect OPENCODE_CONFIG_DIR when set.
+    if let Some(dir) = std::env::var_os("OPENCODE_CONFIG_DIR") {
+        return Ok(expand_tilde(std::path::PathBuf::from(dir)));
+    }
+
+    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME") {
+        return Ok(std::path::PathBuf::from(xdg).join("opencode"));
+    }
+
+    let home = home_dir().ok_or_else(|| {
+        ascii_fmt::error::Error::InvalidInput(
+            "Could not determine home directory for global OpenCode install".to_string(),
+        )
+    })?;
+
+    Ok(home.join(".config").join("opencode"))
+}
+
+fn home_dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("USERPROFILE").map(std::path::PathBuf::from))
+}
+
+fn expand_tilde(path: std::path::PathBuf) -> std::path::PathBuf {
+    let s = path.to_string_lossy();
+    if s == "~" {
+        return home_dir().unwrap_or(path);
+    }
+
+    if let Some(rest) = s.strip_prefix("~/") {
+        return match home_dir() {
+            Some(home) => home.join(rest),
+            None => path,
+        };
+    }
+
+    if let Some(rest) = s.strip_prefix("~\\") {
+        return match home_dir() {
+            Some(home) => home.join(rest),
+            None => path,
+        };
+    }
+
+    path
 }
 
 fn print_help(topic: Option<String>) {
@@ -335,12 +392,12 @@ fn print_file_formats_help() {
 
 fn read_input(path: Option<std::path::PathBuf>) -> Result<String> {
     match path {
-        Some(p) => {
-            std::fs::read_to_string(&p).map_err(ascii_fmt::error::Error::Io)
-        }
+        Some(p) => std::fs::read_to_string(&p).map_err(ascii_fmt::error::Error::Io),
         None => {
             let mut buffer = String::new();
-            std::io::stdin().read_to_string(&mut buffer).map_err(ascii_fmt::error::Error::Io)?;
+            std::io::stdin()
+                .read_to_string(&mut buffer)
+                .map_err(ascii_fmt::error::Error::Io)?;
             Ok(buffer)
         }
     }

@@ -10,12 +10,16 @@ pub fn fix_box_drawing_symbols(diagram: &mut ParsedDiagram) -> Result<()> {
     };
     let mut new_lines = Vec::with_capacity(diagram.lines.len());
 
-    for y in 0..diagram.lines.len() {
-        let line = &original_lines[y];
+    for (y, line) in original_lines.iter().enumerate() {
+        let unicode_verticals: Vec<usize> = line
+            .chars()
+            .enumerate()
+            .filter_map(|(x, ch)| is_unicode_vertical_border(ch).then_some(x))
+            .collect();
         let mut new_line = String::with_capacity(line.len());
 
         for (x, ch) in line.chars().enumerate() {
-            let fixed = fix_char(ch, x, y, &temp_diagram)?;
+            let fixed = fix_char(ch, x, y, &temp_diagram, &unicode_verticals)?;
             new_line.push(fixed);
         }
 
@@ -26,7 +30,19 @@ pub fn fix_box_drawing_symbols(diagram: &mut ParsedDiagram) -> Result<()> {
     Ok(())
 }
 
-fn fix_char(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
+fn fix_char(
+    ch: char,
+    x: usize,
+    y: usize,
+    diagram: &ParsedDiagram,
+    unicode_verticals: &[usize],
+) -> Result<char> {
+    // Inside a Unicode box cell, treat ASCII pseudo-graphics as content.
+    // This prevents accidental conversion of ASCII art inside already boxed diagrams.
+    if is_ascii_pseudo_graphics(ch) && is_inside_unicode_vertical_borders(x, unicode_verticals) {
+        return Ok(ch);
+    }
+
     match ch {
         '+' => fix_plus(x, y, diagram),
         '-' | '_' => {
@@ -62,22 +78,50 @@ fn fix_char(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> Result<cha
     }
 }
 
+fn is_unicode_vertical_border(ch: char) -> bool {
+    matches!(ch, '│' | '║')
+}
+
+fn is_inside_unicode_vertical_borders(x: usize, unicode_verticals: &[usize]) -> bool {
+    if unicode_verticals.len() < 2 {
+        return false;
+    }
+
+    let idx = match unicode_verticals.binary_search(&x) {
+        Ok(i) => i,
+        Err(i) => i,
+    };
+
+    idx > 0 && idx < unicode_verticals.len()
+}
+
+fn is_ascii_pseudo_graphics(ch: char) -> bool {
+    matches!(
+        ch,
+        '+' | '-' | '_' | '|' | '!' | '/' | '\\' | 'v' | '^' | '<' | '>'
+    )
+}
+
 fn should_fix_horizontal(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let up = y
+        .checked_sub(1)
+        .and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     if is_word_boundary_char(left) && is_word_boundary_char(right) {
         return false;
     }
 
-    let has_line_neighbor = left.map_or(false, is_horizontal_like)
-        || right.map_or(false, is_horizontal_like)
-        || up.map_or(false, is_vertical_like)
-        || down.map_or(false, is_vertical_like)
-        || left.map_or(false, is_arrow_like)
-        || right.map_or(false, is_arrow_like);
+    let has_line_neighbor = left.is_some_and(is_horizontal_like)
+        || right.is_some_and(is_horizontal_like)
+        || up.is_some_and(is_vertical_like)
+        || down.is_some_and(is_vertical_like)
+        || left.is_some_and(is_arrow_like)
+        || right.is_some_and(is_arrow_like);
 
     // Underscores/hyphens in free text should be preserved unless they connect to a line.
     match ch {
@@ -87,9 +131,13 @@ fn should_fix_horizontal(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) 
 }
 
 fn should_fix_vertical(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let up = y
+        .checked_sub(1)
+        .and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
     // Don't convert separators inside words/identifiers.
@@ -98,16 +146,18 @@ fn should_fix_vertical(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -
     }
 
     // Convert when connected to surrounding lines or used standalone.
-    left.map_or(false, is_horizontal_like)
-        || right.map_or(false, is_horizontal_like)
-        || up.map_or(false, is_vertical_like)
-        || down.map_or(false, is_vertical_like)
-        || left.map_or(true, |c| c == ' ')
-        || right.map_or(true, |c| c == ' ')
+    left.is_some_and(is_horizontal_like)
+        || right.is_some_and(is_horizontal_like)
+        || up.is_some_and(is_vertical_like)
+        || down.is_some_and(is_vertical_like)
+        || left.is_none_or(|c| c == ' ')
+        || right.is_none_or(|c| c == ' ')
 }
 
 fn should_fix_diagonal(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
     // Treat slashes in identifiers/paths as text.
     if is_word_boundary_char(left) || is_word_boundary_char(right) {
@@ -117,19 +167,29 @@ fn should_fix_diagonal(_ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -
 }
 
 fn is_word_boundary_char(ch: Option<char>) -> bool {
-    ch.map_or(false, |c| c.is_alphanumeric())
+    ch.is_some_and(|c| c.is_alphanumeric())
 }
 
 fn is_horizontal_like(ch: char) -> bool {
-    is_horizontal(ch) || matches!(ch, '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤')
+    is_horizontal(ch)
+        || matches!(
+            ch,
+            '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤'
+        )
 }
 
 fn is_vertical_like(ch: char) -> bool {
-    is_vertical(ch) || matches!(ch, '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤')
+    is_vertical(ch)
+        || matches!(
+            ch,
+            '┌' | '┐' | '└' | '┘' | '┬' | '┴' | '┼' | '+' | '├' | '┤'
+        )
 }
 
 fn should_fix_arrow(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bool {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
 
     // If it is inside a word/identifier, keep it.
@@ -141,8 +201,8 @@ fn should_fix_arrow(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bo
         // Letters in words (e.g. Service) should never turn into arrows.
         'v' | '^' => !(is_word_boundary_char(left) || is_word_boundary_char(right)),
         '<' | '>' => {
-            left.map_or(false, is_horizontal_like)
-                || right.map_or(false, is_horizontal_like)
+            left.is_some_and(is_horizontal_like)
+                || right.is_some_and(is_horizontal_like)
                 || !(is_word_boundary_char(left) || is_word_boundary_char(right))
         }
         _ => true,
@@ -150,22 +210,26 @@ fn should_fix_arrow(ch: char, x: usize, y: usize, diagram: &ParsedDiagram) -> bo
 }
 
 fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let up = y
+        .checked_sub(1)
+        .and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
-    let has_left = left.map_or(false, |c| is_horizontal(c));
-    let has_right = right.map_or(false, |c| is_horizontal(c));
-    let has_up = up.map_or(false, |c| is_vertical(c));
-    let has_down = down.map_or(false, |c| is_vertical(c));
+    let has_left = left.is_some_and(is_horizontal);
+    let has_right = right.is_some_and(is_horizontal);
+    let has_up = up.is_some_and(is_vertical);
+    let has_down = down.is_some_and(is_vertical);
 
     match (has_left, has_right, has_up, has_down) {
         (true, true, true, true) => Ok('┼'),
         (true, true, false, false) => Ok('─'),
         (false, false, true, true) => Ok('│'),
-        (true, true, true, false) => Ok('┬'),
-        (true, true, false, true) => Ok('┴'),
+        (true, true, true, false) => Ok('┴'),
+        (true, true, false, true) => Ok('┬'),
         (true, false, true, true) => Ok('┤'),
         (false, true, true, true) => Ok('├'),
         (true, false, true, false) => Ok('┘'),
@@ -177,15 +241,19 @@ fn fix_plus(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
 }
 
 fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let up = y
+        .checked_sub(1)
+        .and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
-    let has_left = left.map_or(false, |c| is_horizontal(c));
-    let has_right = right.map_or(false, |c| is_horizontal(c));
-    let has_up = up.map_or(false, |c| is_vertical(c));
-    let has_down = down.map_or(false, |c| is_vertical(c));
+    let has_left = left.is_some_and(is_horizontal);
+    let has_right = right.is_some_and(is_horizontal);
+    let has_up = up.is_some_and(is_vertical);
+    let has_down = down.is_some_and(is_vertical);
 
     if has_left && has_right && has_up && !has_down {
         return Ok('┴');
@@ -204,15 +272,19 @@ fn fix_horizontal(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
 }
 
 fn fix_vertical(x: usize, y: usize, diagram: &ParsedDiagram) -> Result<char> {
-    let left = x.checked_sub(1).and_then(|new_x| get_neighbor_char(new_x, y, diagram));
+    let left = x
+        .checked_sub(1)
+        .and_then(|new_x| get_neighbor_char(new_x, y, diagram));
     let right = get_neighbor_char(x + 1, y, diagram);
-    let up = y.checked_sub(1).and_then(|new_y| get_neighbor_char(x, new_y, diagram));
+    let up = y
+        .checked_sub(1)
+        .and_then(|new_y| get_neighbor_char(x, new_y, diagram));
     let down = get_neighbor_char(x, y + 1, diagram);
 
-    let has_left = left.map_or(false, |c| is_horizontal(c));
-    let has_right = right.map_or(false, |c| is_horizontal(c));
-    let has_up = up.map_or(false, |c| is_vertical(c));
-    let has_down = down.map_or(false, |c| is_vertical(c));
+    let has_left = left.is_some_and(is_horizontal);
+    let has_right = right.is_some_and(is_horizontal);
+    let has_up = up.is_some_and(is_vertical);
+    let has_down = down.is_some_and(is_vertical);
 
     if has_left && has_right && has_up && !has_down {
         return Ok('┴');
@@ -281,10 +353,7 @@ mod tests {
     #[test]
     fn test_fix_plus_to_cross() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "---+---".to_string(),
-                "  |".to_string(),
-            ],
+            lines: vec!["---+---".to_string(), "  |".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -295,9 +364,7 @@ mod tests {
     #[test]
     fn test_fix_horizontal_line() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "-----".to_string(),
-            ],
+            lines: vec!["-----".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -309,11 +376,7 @@ mod tests {
     #[test]
     fn test_fix_vertical_line() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "|".to_string(),
-                "|".to_string(),
-                "|".to_string(),
-            ],
+            lines: vec!["|".to_string(), "|".to_string(), "|".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -325,11 +388,7 @@ mod tests {
     #[test]
     fn test_fix_diagonal_forward() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "   /".to_string(),
-                "  / ".to_string(),
-                " /  ".to_string(),
-            ],
+            lines: vec!["   /".to_string(), "  / ".to_string(), " /  ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -340,11 +399,7 @@ mod tests {
     #[test]
     fn test_fix_diagonal_backward() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "\\  ".to_string(),
-                " \\ ".to_string(),
-                "  \\".to_string(),
-            ],
+            lines: vec!["\\  ".to_string(), " \\ ".to_string(), "  \\".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -355,9 +410,7 @@ mod tests {
     #[test]
     fn test_fix_arrow_down() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " v ".to_string(),
-            ],
+            lines: vec![" v ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -369,9 +422,7 @@ mod tests {
     #[test]
     fn test_fix_arrow_up() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " ^ ".to_string(),
-            ],
+            lines: vec![" ^ ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -383,9 +434,7 @@ mod tests {
     #[test]
     fn test_fix_arrow_left() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " < ".to_string(),
-            ],
+            lines: vec![" < ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -397,9 +446,7 @@ mod tests {
     #[test]
     fn test_fix_arrow_right() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " > ".to_string(),
-            ],
+            lines: vec![" > ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -411,25 +458,40 @@ mod tests {
     #[test]
     fn test_fix_plus_cross() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "-+-".to_string(),
-                " | ".to_string(),
-                "-+-".to_string(),
-            ],
+            lines: vec!["-+-".to_string(), " | ".to_string(), "-+-".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
         let result = fix_box_drawing_symbols(&mut diagram);
         assert!(result.is_ok());
-        assert_eq!(diagram.lines[0].chars().nth(1), Some('┴'));
+        // Top junction: left/right + down.
+        assert_eq!(diagram.lines[0].chars().nth(1), Some('┬'));
+    }
+
+    #[test]
+    fn test_fix_plus_table_junctions_top_and_bottom() {
+        let mut diagram = ParsedDiagram {
+            lines: vec![
+                "+----+----+----+".to_string(),
+                "| A  | B  | C  |".to_string(),
+                "+----+----+----+".to_string(),
+                "| D  | E  | F  |".to_string(),
+                "+----+----+----+".to_string(),
+            ],
+            diagram_type: crate::patterns::DiagramType::Unknown,
+        };
+
+        fix_box_drawing_symbols(&mut diagram).unwrap();
+
+        assert_eq!(diagram.lines[0], "┌────┬────┬────┐");
+        assert_eq!(diagram.lines[2], "├────┼────┼────┤");
+        assert_eq!(diagram.lines[4], "└────┴────┴────┘");
     }
 
     #[test]
     fn test_fix_underscore_to_horizontal() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "_____".to_string(),
-            ],
+            lines: vec!["_____".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -441,9 +503,7 @@ mod tests {
     #[test]
     fn test_fix_exclamation_to_vertical() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "!".to_string(),
-            ],
+            lines: vec!["!".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -475,11 +535,7 @@ mod tests {
     #[test]
     fn test_fix_box_with_corners() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "+-+".to_string(),
-                "| |".to_string(),
-                "+-+".to_string(),
-            ],
+            lines: vec!["+-+".to_string(), "| |".to_string(), "+-+".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -504,18 +560,17 @@ mod tests {
 
         assert_eq!(diagram.lines.len(), original_lines.len());
         for (i, line) in diagram.lines.iter().enumerate() {
-            assert_eq!(unicode_width::UnicodeWidthStr::width(line.as_str()),
-                      unicode_width::UnicodeWidthStr::width(original_lines[i].as_str()));
+            assert_eq!(
+                crate::display_width::display_width(line.as_str()),
+                crate::display_width::display_width(original_lines[i].as_str())
+            );
         }
     }
 
     #[test]
     fn test_fix_diagonal_unicode() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "   ╱".to_string(),
-                "  ╱ ".to_string(),
-            ],
+            lines: vec!["   ╱".to_string(), "  ╱ ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -526,11 +581,7 @@ mod tests {
     #[test]
     fn test_fix_plus_with_all_directions() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " | ".to_string(),
-                "-+-".to_string(),
-                " | ".to_string(),
-            ],
+            lines: vec![" | ".to_string(), "-+-".to_string(), " | ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -542,11 +593,7 @@ mod tests {
     #[test]
     fn test_fix_horizontal_with_vertical_neighbors() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " | ".to_string(),
-                "---".to_string(),
-                " | ".to_string(),
-            ],
+            lines: vec![" | ".to_string(), "---".to_string(), " | ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -557,11 +604,7 @@ mod tests {
     #[test]
     fn test_fix_vertical_with_horizontal_neighbors() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "---".to_string(),
-                " | ".to_string(),
-                "---".to_string(),
-            ],
+            lines: vec!["---".to_string(), " | ".to_string(), "---".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -621,10 +664,7 @@ mod tests {
     #[test]
     fn test_fix_plus_corner_top_left() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " + ".to_string(),
-                " | ".to_string(),
-            ],
+            lines: vec![" + ".to_string(), " | ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -635,10 +675,7 @@ mod tests {
     #[test]
     fn test_fix_plus_corner_top_right() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " + ".to_string(),
-                "  |".to_string(),
-            ],
+            lines: vec![" + ".to_string(), "  |".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -649,10 +686,7 @@ mod tests {
     #[test]
     fn test_fix_plus_corner_bottom_left() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                " | ".to_string(),
-                " + ".to_string(),
-            ],
+            lines: vec![" | ".to_string(), " + ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 
@@ -663,10 +697,7 @@ mod tests {
     #[test]
     fn test_fix_plus_corner_bottom_right() {
         let mut diagram = ParsedDiagram {
-            lines: vec![
-                "  |".to_string(),
-                " + ".to_string(),
-            ],
+            lines: vec!["  |".to_string(), " + ".to_string()],
             diagram_type: crate::patterns::DiagramType::Unknown,
         };
 

@@ -3,12 +3,31 @@ use ascii_fmt::formatter;
 use ascii_fmt::text_align::Style;
 use std::path::PathBuf;
 
+const PLUS: &str = "\x2b";
+const PIPE: &str = "\x7c";
+const ARROW_R: &str = "-\x3e";
+
+const BD_H: &str = "\u{2500}";
+const BD_V: &str = "\u{2502}";
+const BD_TL: &str = "\u{250c}";
+const BD_TR: &str = "\u{2510}";
+const BD_BL: &str = "\u{2514}";
+const BD_BR: &str = "\u{2518}";
+const BD_DSLASH: &str = "\u{2571}";
+
+const BD_D_H: &str = "\u{2550}";
+const BD_D_V: &str = "\u{2551}";
+const BD_D_TL: &str = "\u{2554}";
+const BD_D_TR: &str = "\u{2557}";
+const BD_D_BL: &str = "\u{255a}";
+const BD_D_BR: &str = "\u{255d}";
+
 #[test]
 fn test_integration_simple_box() {
-    let input = "+---+\n| A |\n+---+";
+    let input = format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}");
     let options = Options {
         width: 2,
-        style: Style::Standard,
+        style: Style::Minimal,
         fix_box_drawing: true,
         fix_whitespace: true,
         preserve_empty_lines: true,
@@ -16,13 +35,15 @@ fn test_integration_simple_box() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_complex_table() {
-    let input = "+---+---+\n| A | B |\n+---+---+\n| C | D |\n+---+---+";
+    let input = format!(
+        "{PLUS}---{PLUS}---{PLUS}\n{PIPE} A {PIPE} B {PIPE}\n{PLUS}---{PLUS}---{PLUS}\n{PIPE} C {PIPE} D {PIPE}\n{PLUS}---{PLUS}---{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -33,7 +54,7 @@ fn test_integration_complex_table() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
@@ -56,7 +77,7 @@ fn test_integration_tree_diagram() {
 
 #[test]
 fn test_integration_flowchart_with_arrows() {
-    let input = "A -> B\nB -> C\nC -> D";
+    let input = format!("A {ARROW_R} B\nB {ARROW_R} C\nC {ARROW_R} D");
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -67,13 +88,15 @@ fn test_integration_flowchart_with_arrows() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_architecture_diagram() {
-    let input = "+-------+\n| Front |\n+-------+\n    |\n+-------+\n|  DB   |\n+-------+";
+    let input = format!(
+        "{PLUS}-------{PLUS}\n{PIPE} Front {PIPE}\n{PLUS}-------{PLUS}\n    {PIPE}\n{PLUS}-------{PLUS}\n{PIPE}  DB   {PIPE}\n{PLUS}-------{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -84,7 +107,7 @@ fn test_integration_architecture_diagram() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
@@ -107,7 +130,7 @@ fn test_integration_empty_input() {
 
 #[test]
 fn test_integration_unicode_content() {
-    let input = "+----+\n|你好|\n+----+";
+    let input = format!("{PLUS}----{PLUS}\n{PIPE}你好{PIPE}\n{PLUS}----{PLUS}");
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -118,7 +141,7 @@ fn test_integration_unicode_content() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
     let output = result.unwrap();
     assert!(output.contains("你好"));
@@ -126,7 +149,7 @@ fn test_integration_unicode_content() {
 
 #[test]
 fn test_integration_minimal_style() {
-    let input = "+---+\n| A |\n+---+";
+    let input = format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}");
     let options = Options {
         width: 2,
         style: Style::Minimal,
@@ -137,13 +160,13 @@ fn test_integration_minimal_style() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_detailed_style() {
-    let input = "+-----+\n| Hello |\n+-----+";
+    let input = format!("{PLUS}-----{PLUS}\n{PIPE} Hello {PIPE}\n{PLUS}-----{PLUS}");
     let options = Options {
         width: 2,
         style: Style::Detailed,
@@ -154,13 +177,13 @@ fn test_integration_detailed_style() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_no_box_drawing_fix() {
-    let input = "+---+\n| A |\n+---+";
+    let input = format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}");
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -171,13 +194,14 @@ fn test_integration_no_box_drawing_fix() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_no_whitespace_fix() {
-    let input = "┌───┐\n| A |\n└───┘";
+    let h3 = BD_H.repeat(3);
+    let input = format!("{BD_TL}{h3}{BD_TR}\n{PIPE} A {PIPE}\n{BD_BL}{h3}{BD_BR}");
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -188,13 +212,15 @@ fn test_integration_no_whitespace_fix() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_multiple_boxes() {
-    let input = "+---+\n| A |\n+---+\n\n+---+\n| B |\n+---+";
+    let input = format!(
+        "{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}\n\n{PLUS}---{PLUS}\n{PIPE} B {PIPE}\n{PLUS}---{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -205,13 +231,15 @@ fn test_integration_multiple_boxes() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_nested_boxes() {
-    let input = "+-------+\n|+-----+|\n||Hello||\n|+-----+|\n+-------+";
+    let input = format!(
+        "{PLUS}-------{PLUS}\n{PIPE}{PLUS}-----{PLUS}{PIPE}\n{PIPE}{PIPE}Hello{PIPE}{PIPE}\n{PIPE}{PLUS}-----{PLUS}{PIPE}\n{PLUS}-------{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -222,13 +250,15 @@ fn test_integration_nested_boxes() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_large_diagram() {
-    let input = "+---+---+---+\n| A | B | C |\n+---+---+---+\n| D | E | F |\n+---+---+---+\n| G | H | I |\n+---+---+---+";
+    let input = format!(
+        "{PLUS}---{PLUS}---{PLUS}---{PLUS}\n{PIPE} A {PIPE} B {PIPE} C {PIPE}\n{PLUS}---{PLUS}---{PLUS}---{PLUS}\n{PIPE} D {PIPE} E {PIPE} F {PIPE}\n{PLUS}---{PLUS}---{PLUS}---{PLUS}\n{PIPE} G {PIPE} H {PIPE} I {PIPE}\n{PLUS}---{PLUS}---{PLUS}---{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -239,7 +269,7 @@ fn test_integration_large_diagram() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
@@ -318,7 +348,7 @@ fn test_integration_exclamation_to_vertical() {
 
 #[test]
 fn test_integration_text_centering() {
-    let input = "+-------+\n| Hello |\n+-------+";
+    let input = format!("{PLUS}-------{PLUS}\n{PIPE} Hello {PIPE}\n{PLUS}-------{PLUS}");
     let options = Options {
         width: 2,
         style: Style::Detailed,
@@ -329,7 +359,7 @@ fn test_integration_text_centering() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
@@ -354,7 +384,8 @@ fn test_integration_preserves_empty_lines() {
 
 #[test]
 fn test_integration_mixed_diagram_types() {
-    let input = "+---+\n| A |\n+---+\nA -> B\nB -> C";
+    let input =
+        format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}\nA {ARROW_R} B\nB {ARROW_R} C",);
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -365,13 +396,13 @@ fn test_integration_mixed_diagram_types() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_integration_width_option() {
-    let input = "+---+\n| A |\n+---+";
+    let input = format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}");
     let options = Options {
         width: 4,
         style: Style::Standard,
@@ -382,7 +413,7 @@ fn test_integration_width_option() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 }
 
@@ -399,7 +430,6 @@ fn test_integration_cli_parsing() {
         preserve_empty_lines: false,
         dry_run: false,
         verbose: 0,
-        align_boxes: false,
     };
 
     let options = Options::try_from(cli);
@@ -424,7 +454,6 @@ fn test_integration_cli_valid_styles() {
             preserve_empty_lines: true,
             dry_run: false,
             verbose: 0,
-            align_boxes: false,
         };
 
         let options = Options::try_from(cli);
@@ -444,8 +473,8 @@ fn test_integration_parser_empty_input() {
 fn test_integration_parser_valid_diagram() {
     use ascii_fmt::parser;
 
-    let input = "+---+\n| A |\n+---+";
-    let result = parser::parse(input);
+    let input = format!("{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}");
+    let result = parser::parse(&input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
     assert_eq!(diagram.lines.len(), 3);
@@ -456,9 +485,9 @@ fn test_integration_grid_analysis() {
     use ascii_fmt::grid;
 
     let lines = vec![
-        "+---+".to_string(),
-        "| A |".to_string(),
-        "+---+".to_string(),
+        format!("{PLUS}---{PLUS}"),
+        format!("{PIPE} A {PIPE}"),
+        format!("{PLUS}---{PLUS}"),
     ];
 
     let result = grid::analyze_grid(&lines);
@@ -471,19 +500,16 @@ fn test_integration_grid_analysis() {
 fn test_integration_pattern_detection() {
     use ascii_fmt::patterns;
 
-    let tree_lines = vec![
-        "root".to_string(),
-        "  child".to_string(),
-    ];
+    let tree_lines = vec!["root".to_string(), "  child".to_string()];
 
     let tree_type = patterns::detect_type(&tree_lines);
     assert_eq!(tree_type, patterns::DiagramType::Tree);
 
     let flowchart_lines = vec![
-        "A -> B".to_string(),
-        "+---+".to_string(),
-        "| A |".to_string(),
-        "+---+".to_string(),
+        format!("A {ARROW_R} B"),
+        format!("{PLUS}---{PLUS}"),
+        format!("{PIPE} A {PIPE}"),
+        format!("{PLUS}---{PLUS}"),
     ];
 
     let flowchart_type = patterns::detect_type(&flowchart_lines);
@@ -494,7 +520,9 @@ fn test_integration_pattern_detection() {
 fn test_integration_full_workflow() {
     use ascii_fmt::formatter;
 
-    let input = "+---+---+\n| A | B |\n+---+---+\n| C | D |\n+---+---+";
+    let input = format!(
+        "{PLUS}---{PLUS}---{PLUS}\n{PIPE} A {PIPE} B {PIPE}\n{PLUS}---{PLUS}---{PLUS}\n{PIPE} C {PIPE} D {PIPE}\n{PLUS}---{PLUS}---{PLUS}",
+    );
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -505,7 +533,7 @@ fn test_integration_full_workflow() {
         verbose: false,
     };
 
-    let result = formatter::format_ascii(input, &options);
+    let result = formatter::format_ascii(&input, &options);
     assert!(result.is_ok());
 
     let output = result.unwrap();
@@ -538,7 +566,7 @@ fn test_integration_error_handling() {
 
 #[test]
 fn test_integration_all_styles() {
-    let input = "+-----+\n| Hello |\n+-----+";
+    let input = format!("{PLUS}-----{PLUS}\n{PIPE} Hello {PIPE}\n{PLUS}-----{PLUS}");
 
     for style in [Style::Minimal, Style::Standard, Style::Detailed] {
         let options = Options {
@@ -551,7 +579,7 @@ fn test_integration_all_styles() {
             verbose: false,
         };
 
-        let result = formatter::format_ascii(input, &options);
+        let result = formatter::format_ascii(&input, &options);
         assert!(result.is_ok(), "Failed for style: {:?}", style);
     }
 }
@@ -579,8 +607,52 @@ fn test_integration_formats_markdown_example_test_md() {
 }
 
 #[test]
+fn test_integration_formats_markdown_kitties_md() {
+    let input = include_str!("fixtures/markdown/kitties.md");
+    let expected = include_str!("fixtures/markdown/kitties.good.md");
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(
+        output.trim_end_matches(&['\r', '\n'][..]),
+        expected.trim_end_matches(&['\r', '\n'][..]),
+    );
+}
+
+#[test]
+fn test_integration_formats_double_border_table_with_mixed_junctions() {
+    let input = include_str!("fixtures/tables/dogs.bad.txt");
+    let expected = include_str!("fixtures/tables/dogs.good.txt");
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(input, &options).unwrap();
+    assert_eq!(
+        output.trim_end_matches(&['\r', '\n'][..]),
+        expected.trim_end_matches(&['\r', '\n'][..]),
+    );
+}
+
+#[test]
 fn test_integration_preserves_word_characters_in_text() {
-    let input = "Service ts-rs ChaCha20/Argon2 Orange Pi/ C:\\Path\\to\\file";
+    let input = r"Service ts-rs ChaCha20/Argon2 Orange Pi/ C:\Path\to\file";
     let options = Options {
         width: 2,
         style: Style::Standard,
@@ -597,8 +669,11 @@ fn test_integration_preserves_word_characters_in_text() {
 
 #[test]
 fn test_integration_markdown_fence_with_language_is_preserved() {
-    let input = "```text\n+---+\n| A |\n+---+\n```";
-    let expected = "```text\n┌───┐\n│ A │\n└───┘\n```";
+    let input = format!("```text\n{PLUS}---{PLUS}\n{PIPE} A {PIPE}\n{PLUS}---{PLUS}\n```");
+
+    let h3 = BD_H.repeat(3);
+    let expected =
+        format!("```text\n{BD_TL}{h3}{BD_TR}\n{BD_V} A {BD_V}\n{BD_BL}{h3}{BD_BR}\n```",);
 
     let options = Options {
         width: 2,
@@ -610,14 +685,20 @@ fn test_integration_markdown_fence_with_language_is_preserved() {
         verbose: false,
     };
 
-    let output = formatter::format_ascii(input, &options).unwrap();
+    let output = formatter::format_ascii(&input, &options).unwrap();
     assert_eq!(output, expected);
 }
 
 #[test]
 fn test_integration_shrinks_overflowing_ascii_box_line_padding() {
-    let input = "+--------+\n| Hello  |\n| World   |\n+--------+";
-    let expected = "┌────────┐\n│ Hello  │\n│ World  │\n└────────┘";
+    let input = format!(
+        "{PLUS}--------{PLUS}\n{PIPE} Hello  {PIPE}\n{PIPE} World   {PIPE}\n{PLUS}--------{PLUS}",
+    );
+
+    let h8 = BD_H.repeat(8);
+    let expected = format!(
+        "{BD_TL}{h8}{BD_TR}\n{BD_V} Hello  {BD_V}\n{BD_V} World  {BD_V}\n{BD_BL}{h8}{BD_BR}",
+    );
 
     let options = Options {
         width: 2,
@@ -629,8 +710,71 @@ fn test_integration_shrinks_overflowing_ascii_box_line_padding() {
         verbose: false,
     };
 
-    let output = formatter::format_ascii(input, &options).unwrap();
+    let output = formatter::format_ascii(&input, &options).unwrap();
     assert_eq!(output, expected);
+}
+
+#[test]
+fn test_integration_does_not_over_shrink_lines_with_variation_selector_emoji() {
+    let input = format!("{PLUS}----{PLUS}\n{PIPE} ☁️  {PIPE}\n{PLUS}----{PLUS}");
+
+    let h4 = BD_H.repeat(4);
+    let expected = format!("{BD_TL}{h4}{BD_TR}\n{BD_V} ☁️ {BD_V}\n{BD_BL}{h4}{BD_BR}");
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(&input, &options).unwrap();
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn test_integration_shrinks_overflowing_double_border_lines_with_emoji() {
+    let inner_width = 42usize;
+    let title = "🐕 DOG PACK 🐕";
+    let left_pad = 10usize;
+    let title_chars = title.chars().count();
+    let right_pad = inner_width
+        .saturating_sub(left_pad)
+        .saturating_sub(title_chars);
+
+    let top = BD_D_H.repeat(inner_width);
+    let input = format!(
+        "{BD_D_TL}{top}{BD_D_TR}\n{BD_D_V}{left}{title}{right}{BD_D_V}\n{BD_D_BL}{top}{BD_D_BR}",
+        left = " ".repeat(left_pad),
+        right = " ".repeat(right_pad),
+    );
+
+    let options = Options {
+        width: 2,
+        style: Style::Standard,
+        fix_box_drawing: true,
+        fix_whitespace: true,
+        preserve_empty_lines: true,
+        dry_run: false,
+        verbose: false,
+    };
+
+    let output = formatter::format_ascii(&input, &options).unwrap();
+    let mut lines = output.lines();
+    let Some(first) = lines.next() else {
+        panic!("expected at least one output line");
+    };
+    let w0 = ascii_fmt::display_width::display_width(first);
+    for line in lines {
+        assert_eq!(
+            ascii_fmt::display_width::display_width(line),
+            w0,
+            "line widths diverged in output: {output}"
+        );
+    }
 }
 
 #[test]
@@ -670,7 +814,7 @@ fn test_integration_converts_diagonal_slashes_in_diagrams() {
     };
 
     let output = formatter::format_ascii(input, &options).unwrap();
-    assert!(output.contains("╱"));
+    assert!(output.contains(BD_DSLASH));
     assert!(!output.contains('/'));
 }
 
@@ -688,6 +832,7 @@ fn test_integration_converts_hyphen_runs_but_not_hyphens_in_words() {
     };
 
     let output = formatter::format_ascii(input, &options).unwrap();
+    let h5 = BD_H.repeat(5);
     assert!(output.contains("foo-bar"));
-    assert!(output.contains("─────"));
+    assert!(output.contains(&h5));
 }

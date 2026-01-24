@@ -23,6 +23,9 @@ cobertura.xml
 
 # Documentation
 /doc/
+bin
+.opencode
+expamples
 node_modules
 
 # Misc

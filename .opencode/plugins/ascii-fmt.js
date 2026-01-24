@@ -16,6 +16,43 @@ const path = require('path');
 
 const FENCED_LANGS = new Set(['ascii', 'diagram', 'ascii-diagram']);
 
+// Never auto-format source code files. These often contain box-drawing
+// characters inside string literals (tests/fixtures) and formatting the whole
+// file would corrupt the code.
+const SKIP_EXTS = new Set([
+  '.rs',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.json',
+  '.toml',
+  '.yaml',
+  '.yml',
+  '.lock',
+  '.py',
+  '.go',
+  '.java',
+  '.kt',
+  '.swift',
+  '.c',
+  '.h',
+  '.cc',
+  '.cpp',
+  '.hpp',
+  '.cs',
+  '.rb',
+  '.php',
+]);
+
+function shouldSkipWholeFileFormatting(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.md') return false;
+  return SKIP_EXTS.has(ext);
+}
+
 function looksLikeDiagram(text) {
   // Conservative heuristics to avoid touching normal prose/code.
   // Trigger on common diagram glyphs or repeated box/table patterns.
@@ -111,6 +148,9 @@ export const AsciiFmtPlugin = async ({ client, worktree }) => {
 
       // Skip opencode internals.
       if (filePath.includes(`${path.sep}.opencode${path.sep}`)) return;
+
+      // Never auto-format whole source files.
+      if (shouldSkipWholeFileFormatting(filePath)) return;
 
       let text;
       try {

@@ -244,6 +244,8 @@ pub enum Style {
 
 2. **Implement style-specific logic** in `align_text_content()`:
 ```rust
+use crate::display_width::display_width;
+
 pub fn align_text_content(
     diagram: &mut ParsedDiagram,
     _metrics: &GridMetrics,
@@ -259,8 +261,8 @@ pub fn align_text_content(
 
 fn align_text_in_line(line: &str, style: Style) -> String {
     let trimmed = line.trim();
-    let text_len = UnicodeWidthStr::width(trimmed);
-    let original_len = UnicodeWidthStr::width(line);
+    let text_len = display_width(trimmed);
+    let original_len = display_width(line);
 
     if trimmed.is_empty() {
         return String::new();
@@ -549,10 +551,8 @@ pub fn parse(input: &str) -> Result<ParsedDiagram> {
 | Crate | Purpose | Version |
 |-------|---------|---------|
 | `clap` | CLI argument parsing | 4.5 |
-| `anyhow` | Error handling | 1.0 |
 | `thiserror` | Error derive macros | 1.0 |
-| `unicode-width` | Character width calculation | 0.2 |
-| `textwrap` | Text wrapping (future) | 0.16 |
+| `unicode-display-width` | Display width calculation | 0.3 |
 | `criterion` | Benchmarking (dev-dep) | 0.5 |
 
 ### Adding New Dependencies
@@ -595,7 +595,7 @@ for line in lines {
 
 **Good - Cache width calculation:**
 ```rust
-let width = UnicodeWidthStr::width(text);
+let width = display_width(text);
 for i in 0..100 {
     use_cached_width(width);
 }
@@ -604,7 +604,7 @@ for i in 0..100 {
 **Bad - Recalculate repeatedly:**
 ```rust
 for i in 0..100 {
-    let width = UnicodeWidthStr::width(text);  // Expensive Unicode calc
+    let width = display_width(text);  // Expensive Unicode calc
 }
 ```
 

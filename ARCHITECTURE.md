@@ -715,10 +715,8 @@ criterion_main!(benches);
 | Crate | Purpose | Why |
 |-------|---------|-----|
 | `clap` | CLI parsing | De facto standard for Rust CLIs |
-| `anyhow` | Error handling | Easy error context |
 | `thiserror` | Error types | Derive macros for errors |
-| `unicode-width` | Width calc | UAX#11 compliant |
-| `textwrap` | Text wrapping | Battle-tested, Unicode-aware |
+| `unicode-display-width` | Width calc | Terminal display width (Unicode-aware) |
 
 ## Future Enhancements
 

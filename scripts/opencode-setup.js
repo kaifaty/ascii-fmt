@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 function fatal(message) {
   process.stderr.write(`${message}\n`);
@@ -19,8 +20,12 @@ function writeFileIfMissing(filePath, content) {
 }
 
 function main() {
-  const projectRoot = process.cwd();
-  const opencodeDir = path.join(projectRoot, '.opencode');
+  const opencodeDir =
+    process.env.OPENCODE_CONFIG_DIR ||
+    (process.env.XDG_CONFIG_HOME
+      ? path.join(process.env.XDG_CONFIG_HOME, 'opencode')
+      : path.join(os.homedir(), '.config', 'opencode'));
+
   const pluginsDir = path.join(opencodeDir, 'plugins');
   const pluginPath = path.join(pluginsDir, 'ascii-fmt.js');
 
@@ -31,9 +36,9 @@ function main() {
   const pluginCreated = writeFileIfMissing(pluginPath, template);
 
   if (pluginCreated) {
-    process.stdout.write(`Created OpenCode plugin: ${path.relative(projectRoot, pluginPath)}\n`);
+    process.stdout.write(`Created OpenCode plugin: ${pluginPath}\n`);
   } else {
-    process.stdout.write(`OpenCode plugin already exists: ${path.relative(projectRoot, pluginPath)}\n`);
+    process.stdout.write(`OpenCode plugin already exists: ${pluginPath}\n`);
   }
 
   process.stdout.write('\nNext:\n');
